@@ -1,0 +1,17 @@
+name: hp-ner-dl
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - jupyter
+  - ipykernel
+  - numpy
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - networkx
+  - pip:
+    - tensorflow
