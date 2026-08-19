@@ -1,0 +1,1056 @@
+I want you to read this prompt. then perform the functions based on the pormpt and instructions that are given below.
+Make sure to perform incremental commits (do not push into the repository). Do not run the model, but any packages, make a virtual environment and only then pip3 install the packages. Also make a requirements.txt and a proper .gitignore for this project, as things will get heavy.
+Ensure to only work in the current directory and do not perform any scripts outside the current working directory and it's subdirectories.
+Make it such that there is a jupyter notebook version of the code, as well as a normal python3 version of the code as well. For the ML models, chose between Tensorflow and keras, whichever one is better.
+If there are any instructions about a report that is present below, do not make any report yet, just focus on building the code for the entire project. Do not run the code at all.
+
+Also ensure to have codes that allow for visualizations to be generated to ensure that there are proper images for the report when the entire code is run.
+
+Read the instructions carefully, but do not forget the instructions that are given above. Perform the git commit increments when one chunk/block of the code is done, to ensure proper version control of the code.
+Here are the instructions:
+
+You are the lead Deep Learning/NLP engineer responsible for designing, implementing, testing, documenting, and packaging a complete undergraduate research project for the ICT 4442 Deep Learning course.
+The implementation must be technically sound, reproducible, academically defensible, easy for a student team to explain during a viva, and directly usable for the Synopsis, Interim, and Final submissions.
+Do not fabricate data, metrics, citations, dataset statistics, model results, or claims.
+Every numerical result must come from actual code execution.
+1. PROJECT TITLE
+Use this project title:
+“The Magic Behind the Text: A Deep Learning Comparison for Named Entity Recognition and Relation Extraction in the Harry Potter Universe”
+2. PROJECT IDEA
+Develop and compare multiple Deep Learning architectures for Natural Language Processing using the Kaggle dataset:
+Harry Potter (NER + RE)
+Kaggle dataset:
+[https://www.kaggle.com/datasets/mkdsps/harry-potter-ner-re](https://www.kaggle.com/datasets/mkdsps/harry-potter-ner-re)
+The dataset is specifically designed for Named Entity Recognition and Relation Extraction in the Harry Potter fictional universe.
+The documented entity categories include:
+CHARACTER
+HOUSE
+MAGIC_ITEM
+SPELL
+LOCATION
+The documented relation annotations include multiple relationship types such as:
+friend-of
+enemy-of
+mentor-of
+student-of
+parent-of
+sibling-of
+rival-of
+ally-of
+member-of-house
+founder-of-house
+uses
+owns
+acquires
+gives
+casts
+knows
+teaches
+The Kaggle dataset description also indicates that annotations contain token indices and that a verified golden set is provided.
+IMPORTANT:
+Do not assume the actual file names, fields, JSON schema, column names, tokenization format, or annotation structure.
+Inspect the downloaded dataset programmatically first.
+3. PRIMARY RESEARCH TASK
+The primary task for the project is:
+Named Entity Recognition / Token Classification
+Given a tokenized paragraph from the Harry Potter dataset, predict the entity tag associated with every token.
+Transform the entity annotations into a BIO tagging scheme:
+B-CHARACTER
+I-CHARACTER
+B-HOUSE
+I-HOUSE
+B-MAGIC_ITEM
+I-MAGIC_ITEM
+B-SPELL
+I-SPELL
+B-LOCATION
+I-LOCATION
+O
+Use BIO rather than BIOES unless there is a strong dataset-specific reason to use another scheme.
+The final token-classification model must assign one label to every input token.
+4. SECONDARY TASK
+Implement Relation Extraction as a secondary analysis/task.
+Given two identified entities within an annotated paragraph, predict the relation between them where an annotated relation exists.
+Example conceptual structure:
+Harry Potter -> friend-of -> Ron Weasley
+Harry Potter -> mentor-of -> Dumbledore
+Harry Potter -> uses -> Wand
+Hermione -> belongs-to/member-of -> Gryffindor
+Do NOT fabricate relation examples.
+Use only relations actually present in the dataset annotations.
+The Relation Extraction component should be included only if the actual dataset structure contains sufficient usable relation annotations.
+If the relation data is too sparse, inconsistent, or incompatible with a reliable experimental design, explicitly report this and make NER the primary completed experiment.
+Never pretend that RE works merely because the dataset description says RE is supported.
+5. IMPORTANT PROJECT STRATEGY
+The project must NOT become an enormous two-task system that is too difficult to complete.
+Priority order:
+Complete NER correctly.
+Compare four DL architectures on NER.
+Produce robust evaluation and visualizations.
+Implement a lightweight RE experiment if the data supports it.
+Generate a knowledge-graph visualization from actual relation predictions/annotations.
+The NER experiment is the primary graded scientific experiment.
+RE is an extension that increases technical sophistication.
+6. FOUR MODELS
+Use four genuinely different neural architectures.
+MODEL 1 — MLP TOKEN CLASSIFIER
+Architecture:
+Token representation
+→ Embedding
+→ Dense layer
+→ Dropout
+→ Dense
+→ Softmax per token
+Purpose:
+This is the feed-forward Deep Learning baseline.
+It does not explicitly model temporal/token-to-token dependencies.
+The MLP must still perform token-level classification.
+Do not reduce the task to document-level classification.
+MODEL 2 — SIMPLE RNN
+Architecture:
+Token IDs
+→ Embedding
+→ SimpleRNN
+→ Dropout
+→ Dense
+→ Softmax
+Use return_sequences=True.
+This allows a prediction for each input token.
+MODEL 3 — BIDIRECTIONAL LSTM
+Architecture:
+Token IDs
+→ Embedding
+→ Bidirectional LSTM
+→ Dropout
+→ Dense
+→ Softmax
+Use return_sequences=True.
+Purpose:
+Allow the model to consider both left and right contextual information.
+MODEL 4 — BIDIRECTIONAL LSTM + ATTENTION
+Architecture:
+Token IDs
+→ Embedding
+→ Bidirectional LSTM
+→ Attention mechanism
+→ Dense
+→ Softmax
+IMPORTANT:
+Because this is token classification, implement attention carefully.
+Do NOT accidentally create a document-level attention classifier that outputs one label for the entire paragraph.
+The architecture must still produce one prediction per token.
+The attention layer must preserve the sequence dimension.
+Prefer a lightweight custom self-attention/token-context layer that produces contextual token representations.
+The attention implementation must be inspectable and explainable.
+Avoid black-box third-party abstractions if they prevent extraction/visualization of attention information.
+7. MODEL COMPARISON REQUIREMENT
+All four NER models must use the same:
+dataset
+selected samples
+train/validation/test partition
+tokenization
+label encoding
+maximum sequence length
+metrics
+evaluation procedure
+The only intended major difference should be the neural architecture.
+This is essential for a fair comparison.
+Do not tune one model heavily while leaving another model at arbitrary defaults unless the report explicitly separates baseline and optimized experiments.
+8. DATASET INSPECTION
+Before building any model, inspect the dataset automatically.
+Print:
+downloaded file names
+file types
+file sizes
+number of examples
+available columns/keys
+first few raw examples
+token fields
+entity annotation fields
+relation annotation fields
+label counts
+missing values
+malformed records
+empty examples
+duplicate examples
+Determine whether the dataset is:
+JSON
+JSONL
+CSV
+multiple files
+nested JSON
+some combination
+Do not assume any of these.
+Build a robust loader after inspection.
+9. DATASET LOADING
+Create a reusable function:
+load_dataset()
+It should:
+Locate the dataset files.
+Identify candidate annotation files.
+Parse the actual structure.
+Normalize the information into an internal representation.
+Recommended internal structure:
+example = {
+"tokens": [...],
+"entities": [...],
+"relations": [...]
+}
+Entities should be normalized to:
+{
+"start": integer,
+"end": integer,
+"label": string
+}
+Relations should be normalized to:
+{
+"head": integer,
+"tail": integer,
+"relation": string
+}
+The exact mapping must be derived from the actual dataset schema.
+Document the mapping in the notebook.
+10. GOLDEN SET
+If the dataset contains a verified golden set:
+identify it explicitly
+inspect its structure
+report its size
+report its annotation categories
+use it appropriately
+Do NOT blindly merge the golden set into training data.
+Determine whether the golden set is intended for evaluation.
+If it is a dedicated verification/evaluation set, preserve it.
+Document the decision.
+11. ENTITY DISTRIBUTION
+Produce a table showing:
+Entity Type
+Count
+CHARACTER
+HOUSE
+MAGIC_ITEM
+SPELL
+LOCATION
+Also calculate:
+number of unique entity mentions
+number of unique surface forms where practical
+entities per document
+sentence/document length distribution
+Do not invent values.
+12. BIO CONVERSION
+Convert span annotations to BIO token labels.
+Example:
+Tokens:
+Harry Potter attended Hogwarts .
+BIO:
+B-CHARACTER
+I-CHARACTER
+O
+B-LOCATION
+O
+If an entity spans multiple tokens, the first token must receive B-LABEL and subsequent tokens must receive I-LABEL.
+Handle overlapping entities carefully.
+If the source annotations contain overlapping/nested entities that cannot be represented by a single BIO label per token:
+Detect the conflict.
+Count how many cases occur.
+Report the issue.
+Implement a defensible policy.
+Do not silently discard the information.
+Prefer a documented precedence policy only if required.
+13. LABEL ENCODING
+Create a complete label mapping.
+Example:
+O -> 0
+B-CHARACTER -> 1
+I-CHARACTER -> 2
+...
+But do NOT assume that exact mapping.
+Generate it programmatically.
+Save:
+label_to_id.json
+and:
+id_to_label.json
+Ensure the same mapping is used across all four models.
+14. TRAIN/VALIDATION/TEST SPLIT
+Split at the document/paragraph/example level.
+NEVER split individual tokens from the same paragraph across train and test.
+This would create severe leakage.
+Preferred:
+70% training
+15% validation
+15% test
+or another defensible split if dataset size requires it.
+Use a fixed random seed.
+Where stratification at the paragraph level is feasible, preserve label distributions as much as possible.
+If exact multilabel stratification is not appropriate, explain why.
+15. LEAKAGE CHECKS
+Implement checks for:
+exact duplicate paragraphs across splits
+identical token sequences across splits
+duplicated annotations
+duplicate examples
+Print the number of overlaps found.
+Do not silently remove legitimate validation/test data merely to improve metrics.
+16. PADDING AND TRUNCATION
+All four models should use the same sequence length.
+Determine maximum sequence length based on the actual dataset distribution.
+Do not blindly choose an arbitrarily huge sequence length.
+Report:
+minimum token length
+median token length
+mean token length
+90th percentile
+95th percentile
+maximum token length
+Choose a defensible maximum length, preferably based on the 95th percentile or another clearly justified threshold.
+Report the proportion of examples/tokens affected by truncation.
+If truncation is substantial, revise the sequence length.
+17. TOKENIZATION
+Because this project compares RNN-family architectures rather than Transformer models:
+Use a conventional word-level tokenizer/vectorizer.
+Fit the vocabulary using TRAINING DATA ONLY.
+Then transform validation and test.
+Do not fit vocabulary on the full dataset.
+Record:
+vocabulary size
+unknown token strategy
+padding method
+maximum sequence length
+Use an out-of-vocabulary token.
+Do not let test data influence vocabulary creation.
+18. SPECIAL TOKENS
+Use clear handling for:
+padding
+unknown tokens
+Ensure padding tokens do not artificially dominate the loss.
+Use masking where appropriate.
+The MLP, RNN, LSTM and BiLSTM+Attention models must all handle padded tokens consistently.
+19. LOSS FUNCTION
+Use an appropriate token-level multiclass loss.
+Preferred:
+SparseCategoricalCrossentropy
+with masking/ignoring padded positions as appropriate.
+Do not calculate loss on artificial padding tokens.
+Verify this behavior.
+20. CLASS IMBALANCE
+NER datasets normally have many more O tokens than entity tokens.
+Do not rely only on token accuracy.
+Compute:
+token accuracy
+macro precision
+macro recall
+macro F1
+weighted F1
+Also calculate entity-focused metrics.
+At minimum:
+non-O macro F1
+per-entity-class precision
+per-entity-class recall
+per-entity-class F1
+Prefer actual entity-level evaluation using span reconstruction where practical.
+21. ENTITY-LEVEL EVALUATION
+Reconstruct predicted BIO spans.
+Compare predicted spans to gold spans.
+Report:
+exact entity precision
+exact entity recall
+exact entity F1
+Also provide results per entity type:
+CHARACTER
+HOUSE
+MAGIC_ITEM
+SPELL
+LOCATION
+This should be one of the most important result tables in the final report.
+Explain that token-level performance and exact span-level performance measure different aspects of NER quality.
+22. MODEL TRAINING
+Use common training configuration initially.
+Suggested baseline:
+optimizer = Adam
+Learning rate = 0.001 initially, unless actual experiments justify modification.
+Embedding dimension = modest, such as 64 or 128.
+Recurrent hidden size = modest, such as 64 or 128.
+Dropout = approximately 0.2–0.4.
+Batch size = 16 or 32 depending on resource availability.
+Maximum epochs = approximately 20–30.
+Use:
+EarlyStopping
+ReduceLROnPlateau
+Restore best weights.
+Do not use excessively large architectures.
+The project should run on a normal student laptop and optionally benefit from a GPU.
+23. REPRODUCIBILITY
+Set seeds for:
+Python random
+NumPy
+TensorFlow
+Print:
+Python version
+TensorFlow version
+NumPy version
+Pandas version
+Scikit-learn version
+Print:
+CPU/GPU availability
+Use deterministic settings where reasonably supported.
+Document anything that prevents complete bit-level determinism.
+24. TRAINING HISTORY
+Save the training history for every model.
+Create training curves for:
+training loss
+validation loss
+Do not rely on accuracy alone.
+For token-level NER, accuracy may be misleading.
+Where feasible, calculate validation macro F1 after each epoch and plot it.
+If this complicates the Keras training loop, use a custom callback or evaluate after each epoch.
+25. NER VISUALIZATIONS
+The notebook must contain polished visualizations suitable for the final report.
+Minimum required figures:
+Entity-type distribution
+Label/BIO-tag distribution
+Paragraph length distribution
+Entity count per paragraph
+Class imbalance visualization
+MLP training/validation loss
+SimpleRNN training/validation loss
+BiLSTM training/validation loss
+BiLSTM+Attention training/validation loss
+Model comparison by token accuracy
+Model comparison by macro F1
+Model comparison by entity-level F1
+Per-entity-class F1 comparison
+Confusion matrix for the best model
+Confusion matrix for each model if computationally practical
+All figures must contain:
+title
+axis labels
+readable typography
+appropriate legend where required
+sensible figure size
+saved high-resolution output
+Save figures under:
+results/figures/
+26. NER ERROR ANALYSIS
+This is mandatory.
+Identify actual examples where the best model:
+predicted the wrong entity type
+missed an entity completely
+partially identified an entity
+merged separate entities
+confused two entity types
+Create a table such as:
+Text
+Gold
+Prediction
+Error Type
+Only use real test examples.
+Do not invent examples.
+Analyse why errors occurred.
+Possible explanations include:
+ambiguous words
+insufficient context
+rare entity types
+unseen entities
+similar lexical patterns
+long-range context
+class imbalance
+truncation
+tokenization errors
+Only claim a cause when supported by evidence.
+27. ATTENTION VISUALIZATION
+For the BiLSTM+Attention model, extract attention weights.
+Create a visualization where the input tokens are displayed with an interpretable representation of attention strength.
+For example:
+Token Attention Weight
+Harry 0.12
+visited 0.04
+the 0.01
+Hogwarts 0.43
+Do not claim:
+“Attention proves that this word caused the prediction.”
+Instead describe the visualization as:
+“Tokens receiving higher attention weights according to the model.”
+Select both:
+correctly predicted examples
+incorrectly predicted examples
+This can become a strong presentation slide.
+28. RELATION EXTRACTION
+After NER is working, inspect the relation data.
+Determine:
+number of relation types
+number of relation instances
+relation distribution
+average number of relations per paragraph
+entity-pair distribution
+Create:
+relation_counts.csv
+and a relation-frequency visualization.
+Do NOT proceed directly to a complicated end-to-end graph model.
+Use a lightweight supervised relation classifier.
+29. RELATION EXTRACTION INPUT
+For each annotated relation:
+Input:
+surrounding paragraph context
+head entity
+tail entity
+entity types
+token context
+Output:
+relation label.
+For negative examples, sample entity pairs without annotated relations.
+IMPORTANT:
+Negative sampling must be done only using training data rules.
+Do not accidentally create test labels using training information.
+30. RELATION MODEL
+Use a simple neural architecture for the secondary RE task.
+Possible architecture:
+Context token embeddings
++
+head entity representation
++
+tail entity representation
+→ concatenation
+→ Dense
+→ Dropout
+→ Dense
+→ Softmax
+Optionally add an LSTM context encoder.
+The relation extraction component does not need four different architectures.
+The main 3–4 architecture comparison is the NER experiment.
+31. RELATION METRICS
+For RE calculate:
+accuracy
+macro precision
+macro recall
+macro F1
+Because relation classes may be imbalanced, macro F1 is especially important.
+Show the confusion matrix.
+Show the top relation classes.
+Do not oversell RE if the dataset has too few examples.
+32. KNOWLEDGE GRAPH VISUALIZATION
+Use NetworkX and Matplotlib.
+Construct a graph from the annotated/predicted relations.
+Example concept:
+Harry Potter
+|
+friend-of
+|
+Ron Weasley
+Hermione Granger
+|
+member-of-house
+|
+Gryffindor
+Only draw relationships supported by actual data.
+Create:
+results/figures/harry_potter_relation_graph.png
+Limit the graph to a readable subset of entities/relations.
+Do not plot hundreds of nodes in one unreadable figure.
+Possible choices:
+top connected characters
+one selected character such as Harry if sufficiently represented
+one relation type at a time
+a small community of entities
+The selection rule must be documented.
+33. FINAL MODEL COMPARISON
+Create a final table:
+Model
+Token Accuracy
+Macro Precision
+Macro Recall
+Token Macro F1
+Entity F1
+Parameters
+Training Time
+MLP
+SimpleRNN
+BiLSTM
+BiLSTM + Attention
+The actual values must be produced by the executed code.
+Do not insert example values into the final results table.
+34. RESEARCH QUESTIONS
+Use the following research questions:
+RQ1
+How effectively can Deep Learning architectures identify named entities in Harry Potter text?
+RQ2
+How does sequential modelling affect NER performance compared with a feed-forward token-classification baseline?
+RQ3
+Does bidirectional recurrent modelling improve entity recognition compared with a unidirectional recurrent architecture?
+RQ4
+Does incorporating attention improve contextual token classification and entity-level recognition?
+Optional:
+RQ5
+Can the annotated entity and relation information be used to construct a meaningful Harry Potter knowledge graph?
+35. PROJECT OBJECTIVES
+Use these concise objectives:
+To develop a Deep Learning-based Named Entity Recognition system for identifying characters, houses, magical items, spells, and locations in Harry Potter text.
+To compare feed-forward, recurrent, bidirectional LSTM, and attention-enhanced recurrent architectures using a common experimental protocol.
+To evaluate whether sequential context and attention improve token-level and entity-level NER performance.
+To investigate the feasibility of relation extraction and knowledge-graph construction from the annotated fictional text.
+36. HYPOTHESES
+Do NOT present these as facts.
+Use them as hypotheses:
+H1:
+Recurrent architectures will outperform the MLP baseline because they can exploit sequential context.
+H2:
+Bidirectional LSTM will outperform SimpleRNN because it can integrate both preceding and following contextual information.
+H3:
+BiLSTM with attention may improve entity-level F1 by emphasizing informative contextual tokens.
+H4:
+Relation-extraction annotations can support a meaningful graphical representation of relationships among entities.
+The actual results must determine whether these hypotheses are supported.
+37. LITERATURE REVIEW SUPPORT
+The project needs at least 8–10 papers for the interim submission and 12+ references for the final report.
+The agent must NOT fabricate papers.
+The literature search should cover:
+Named Entity Recognition
+Neural sequence labelling
+RNNs
+LSTM
+Bidirectional LSTM
+Attention
+Relation extraction
+Neural relation extraction
+Sequence tagging evaluation
+Fictional-domain NLP if relevant
+At minimum include legitimate foundational work such as:
+Hochreiter, S., & Schmidhuber, J. (1997).
+Long Short-Term Memory.
+Also identify genuine subsequent papers from reliable scholarly sources.
+Verify:
+author names
+paper title
+venue
+publication year
+DOI where applicable
+Do not fabricate a citation merely to reach “12 references.”
+38. IMPORTANT ACADEMIC-INTEGRITY REQUIREMENT
+The student report must clearly disclose use of AI/LLM tools according to the course instruction.
+The code must be original enough for the students to understand and defend.
+Do not generate a report that pretends the students did not use an AI coding assistant.
+The README should contain an appropriate note that external AI assistance may have been used during development, subject to the university/course policy.
+The final report should contain a transparent acknowledgement appropriate to the course rules.
+39. COPYRIGHT / DATASET HANDLING
+The Kaggle dataset page identifies the dataset as Apache 2.0, but the agent must verify the actual dataset page and repository contents before making licensing claims.
+Do not redistribute external copyrighted source text unnecessarily.
+The GitHub repository should contain:
+data/README.md
+explaining how to obtain the dataset rather than automatically committing the raw dataset if redistribution is questionable.
+Do not place the full source text into the Git repository merely for convenience.
+40. VIRTUAL ENVIRONMENT
+Create a complete Python environment.
+Use Python 3.11 unless actual dependency compatibility requires otherwise.
+Create:
+requirements.txt
+and optionally:
+environment.yml
+The project must work in a virtual environment.
+Setup instructions must include:
+python -m venv .venv
+Platform-specific activation instructions.
+Then:
+pip install --upgrade pip
+pip install -r requirements.txt
+Then:
+python -m ipykernel install --user --name hp-ner-dl --display-name "Harry Potter NER DL"
+The notebook must be able to select the correct kernel.
+41. DEPENDENCIES
+Use only packages actually needed.
+Expected core libraries include:
+tensorflow
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+networkx
+jupyter
+ipykernel
+Add other packages only when genuinely required.
+After finalizing imports, compare all third-party imports against requirements.txt.
+There must be no missing dependencies.
+There must be no unnecessary dependencies.
+42. PROJECT STRUCTURE
+Create:
+harry-potter-ner-dl/
+├── README.md
+├── requirements.txt
+├── environment.yml
+├── .gitignore
+│
+├── notebooks/
+│ └── harry_potter_ner_relation_extraction.ipynb
+│
+├── src/
+│ ├── init.py
+│ ├── data_loader.py
+│ ├── preprocessing.py
+│ ├── bio_utils.py
+│ ├── models.py
+│ ├── training.py
+│ ├── evaluation.py
+│ ├── relation_extraction.py
+│ ├── visualization.py
+│ └── reproducibility.py
+│
+├── data/
+│ └── README.md
+│
+├── results/
+│ ├── figures/
+│ ├── tables/
+│ ├── metrics/
+│ ├── predictions/
+│ └── models/
+│
+└── docs/
+└── methodology_notes.md
+43. NOTEBOOK REQUIREMENTS
+Create exactly one main integrated notebook:
+notebooks/harry_potter_ner_relation_extraction.ipynb
+The notebook must execute from beginning to end.
+It must not require undocumented manual changes.
+It must not contain:
+TODO cells
+placeholder results
+fake metrics
+undefined variables
+missing imports
+unexplained magic constants
+cells dependent on execution order that is not obvious
+Restart the kernel and run all cells from top to bottom before declaring the notebook complete.
+44. NOTEBOOK SECTION STRUCTURE
+The notebook must contain these Markdown sections:
+Project Title
+Abstract
+Research Motivation
+Research Questions
+Objectives
+Dataset Description
+Environment and Reproducibility
+Imports
+Dataset Loading
+Dataset Inspection
+Data Quality Checks
+Entity Analysis
+Relation Analysis
+BIO Conversion
+Dataset Splitting
+Tokenization
+Sequence Preparation
+Model Architecture 1 — MLP
+Model Architecture 2 — SimpleRNN
+Model Architecture 3 — BiLSTM
+Model Architecture 4 — BiLSTM + Attention
+Training Protocol
+Model Training
+Training Curves
+Token-Level Evaluation
+Entity-Level Evaluation
+Confusion Matrices
+Error Analysis
+Attention Visualization
+Relation Extraction
+Relation Evaluation
+Knowledge Graph Visualization
+Overall Model Comparison
+Discussion
+Limitations
+Conclusion
+Reproducibility Summary
+45. MODEL SUMMARY OUTPUT
+For every model print a Keras model summary.
+Save parameter counts.
+Create a table:
+Model
+Trainable Parameters
+Non-Trainable Parameters
+Total Parameters
+This will be used to discuss the trade-off between model complexity and performance.
+46. TRAINING-TIME MEASUREMENT
+Measure actual training time for every model.
+Do not estimate.
+Store:
+start timestamp
+end timestamp
+elapsed seconds
+Report training time in the comparison table.
+Explain that training time depends on hardware and environment.
+Do not use training time as an absolute universal efficiency claim.
+47. RESOURCE DETECTION
+At startup:
+detect CPU
+detect available GPU(s)
+print TensorFlow device information
+The code must remain CPU-compatible.
+Do not require CUDA-specific packages.
+If a GPU is available, use it automatically where TensorFlow supports it.
+48. ERROR HANDLING
+Examples:
+If dataset is missing:
+raise FileNotFoundError with clear instructions.
+If file format differs:
+print detected structure and adapt.
+If annotations cannot be converted cleanly:
+report the conflicting records.
+If class distribution is too sparse:
+reduce the selected entity classes only according to a documented rule.
+If RE cannot be evaluated reliably:
+continue with NER and document the limitation.
+Never silently produce a fake result.
+49. TESTING REQUIREMENTS
+Before finalizing, test:
+Data loader test
+Can the loader read the dataset and return normalized examples?
+BIO conversion test
+Create several small hand-checkable unit cases using synthetic toy examples.
+Do NOT use fabricated Harry Potter data as though it came from the dataset.
+Use synthetic examples strictly to test BIO logic.
+Model shape test
+Verify each model returns:
+(batch_size, sequence_length, number_of_labels)
+Evaluation test
+Verify that padding tokens are excluded appropriately.
+Attention test
+Verify that attention output dimensions are correct.
+RE test
+Verify relation classifier input/output shapes.
+50. UNIT TESTS
+Create lightweight tests where useful.
+Minimum:
+dataset parsing test
+BIO conversion test
+model output shape test
+evaluation masking test
+Do not create an unnecessarily large software-testing framework.
+51. SAVE RESULTS
+Save:
+results/metrics/ner_model_comparison.csv
+results/metrics/entity_level_metrics.csv
+results/metrics/relation_metrics.csv
+results/predictions/test_predictions.csv
+results/tables/class_distribution.csv
+results/tables/relation_distribution.csv
+results/tables/model_parameters.csv
+results/figures/
+All output files must contain real generated results.
+52. CONFUSION MATRIX
+Create confusion matrices for the NER labels.
+Because there can be many BIO classes, ensure the axis labels remain readable.
+Also create an entity-type confusion representation if useful.
+Do not make an unreadable figure simply to satisfy the requirement.
+53. ERROR EXAMPLES FOR REPORT
+Automatically export a concise error-analysis CSV:
+results/predictions/ner_error_examples.csv
+Columns:
+text
+token
+gold_label
+predicted_label
+example_id
+Also save selected full-paragraph examples for human discussion.
+54. ATTENTION OUTPUT
+Save selected attention examples to:
+results/figures/attention/
+Each example should include:
+input tokens
+gold labels
+predicted labels
+attention weights
+Use readable visualizations.
+55. RELATION GRAPH OUTPUT
+Create:
+results/figures/relationship_graph.png
+The graph must be generated from actual relations.
+Use:
+nodes = entities
+edges = relations
+Use a readable subset.
+If many relation types exist, use edge labels.
+Make a second optional graph showing one selected relation family if the full graph is too dense.
+56. REPORT-QUALITY TABLES
+All important tables must be exportable to CSV and optionally LaTeX.
+Create:
+model_comparison.csv
+entity_class_metrics.csv
+relation_metrics.csv
+class_distribution.csv
+parameter_comparison.csv
+The notebook should display them in clean pandas tables.
+57. REPORT DISCUSSION LOGIC
+The final notebook discussion should answer:
+Which model achieved the best token-level performance?
+Which model achieved the best entity-level F1?
+Did recurrent models improve over the MLP?
+Did bidirectionality help?
+Did attention help?
+Which entity type was easiest to detect?
+Which entity type was hardest?
+What were the major sources of errors?
+What is the cost of larger models in parameter count and training time?
+Can relation extraction produce a useful knowledge graph?
+What are the limitations of the dataset and experimental design?
+Do not automatically claim that the most complex model is best.
+Interpret the observed results.
+58. LIMITATIONS
+The notebook/report must include genuine limitations.
+Potential areas to investigate:
+fictional-domain dataset
+class imbalance
+limited annotation coverage
+ambiguous entity surface forms
+tokenization limitations
+sequence-length truncation
+limited relation examples
+possible source-text duplication
+generalization beyond the Harry Potter domain
+computational constraints
+Only include limitations that actually apply.
+59. NO DATA FABRICATION
+This rule overrides everything else.
+Never write:
+“The model achieved 97.3% F1”
+unless the executed code actually produced 97.3%.
+Never write:
+“The dataset contains 50,000 examples”
+unless the code verified that number.
+Never create attractive sample metrics just to populate a table.
+Never fabricate a confusion matrix.
+Never fabricate attention weights.
+Never fabricate training time.
+Never fabricate literature results.
+60. FINAL AUTOMATED QUALITY CHECK
+Before declaring the project complete, execute all relevant code.
+Confirm:
+[ ] Dataset is accessible
+[ ] Dataset structure is documented
+[ ] Entity annotations are correctly parsed
+[ ] Relation annotations are correctly parsed
+[ ] BIO conversion works
+[ ] Train/validation/test split works
+[ ] No leakage is detected
+[ ] Tokenizer fitted only on training data
+[ ] Padding is handled correctly
+[ ] MLP trains
+[ ] SimpleRNN trains
+[ ] BiLSTM trains
+[ ] BiLSTM+Attention trains
+[ ] All models produce sequence-level outputs
+[ ] Token metrics are generated
+[ ] Entity-level metrics are generated
+[ ] Error analysis is generated
+[ ] Attention visualization works
+[ ] RE component works if supported by data
+[ ] Knowledge graph visualization works
+[ ] Final comparison table is generated
+[ ] All figures are saved
+[ ] All metrics are saved
+[ ] requirements.txt matches imports
+[ ] Notebook runs from start to finish
+[ ] README is complete
+[ ] Git repository structure is clean
+[ ] No raw copyrighted source material is unnecessarily committed
+[ ] No fabricated results exist
+[ ] No fabricated citations exist
+61. GITHUB README
+Generate a professional README containing:
+Project Title
+Overview
+Research Questions
+Objectives
+Dataset
+Dataset Citation
+Environment Setup
+Virtual Environment Setup
+Running the Notebook
+Models
+Evaluation Metrics
+Results
+Visualization Examples
+Repository Structure
+Reproducibility
+Limitations
+Academic Integrity / AI Assistance Disclosure
+References
+The README must not contain made-up result numbers.
+62. CONTRIBUTION STRUCTURE FOR FOUR TEAM MEMBERS
+Design the codebase so each member has a clearly defensible contribution.
+Suggested division:
+Member 1
+Data acquisition, data cleaning, BIO conversion, exploratory analysis.
+Member 2
+MLP and SimpleRNN implementation.
+Member 3
+BiLSTM implementation and training/evaluation.
+Member 4
+BiLSTM + Attention, interpretation, relation extraction, and knowledge graph.
+All members should also contribute to:
+testing
+evaluation
+report
+presentation
+Do not make the contribution split artificially exclusive.
+63. VIVA PREPARATION
+At the end of the notebook or README, generate a concise technical summary for each model.
+For every model explain:
+input
+embedding
+hidden representation
+sequence handling
+output
+reason for architecture
+main advantage
+main limitation
+Also explain:
+BIO tagging
+padding mask
+macro F1
+exact entity F1
+attention
+relation extraction
+knowledge graphs
+The explanations must be technically correct and understandable to an undergraduate student.
+64. PRESENTATION-READY VISUAL STORY
+The notebook should generate figures suitable for a 10–12 minute presentation.
+Recommended presentation figures:
+Dataset/entity distribution
+NER pipeline diagram or schematic
+Four-model architecture comparison
+Training curves
+Model performance comparison
+Per-entity F1
+Attention visualization
+Harry Potter relationship graph
+Example prediction/error analysis
+Do not use a huge number of visually redundant plots.
+Prefer a small number of strong figures.
+65. FINAL RESEARCH NARRATIVE
+The resulting project should tell this story:
+“Given annotated Harry Potter text, we investigated whether progressively stronger Deep Learning architectures could improve named entity recognition. We began with a feed-forward neural baseline, introduced recurrence with SimpleRNN, added bidirectional contextual modelling with BiLSTM, and finally incorporated attention. We evaluated the models using both token-level and entity-level metrics and examined errors and attention behaviour. We additionally explored whether the dataset's relation annotations could be transformed into a neural relation-extraction task and a visual knowledge graph.”
+Do not claim that this narrative is supported by results until the experiment is completed.
+66. FINAL AGENT RESPONSE
+After implementation and testing, return a concise technical completion report containing:
+Dataset files detected
+Dataset size
+Entity classes
+Relation classes
+Final BIO label count
+Train/validation/test sizes
+Sequence length
+Vocabulary size
+Four model architectures
+Parameter counts
+Training times
+Token-level metrics
+Entity-level metrics
+Best model
+Relation extraction results, if available
+Generated knowledge-graph output
+Important error-analysis findings
+Generated files
+Environment installation instructions
+Any unresolved issues
+Do not state that the project is complete unless the notebook has actually been executed successfully from beginning to end.
+67. FINAL RULE
+Prioritize correctness and reproducibility over impressive-looking output.
+A smaller model with trustworthy results is better than a larger model with fabricated or poorly controlled results.
+The final project must be something the four students can understand, run, defend, explain, and reproduce during the ICT 4442 viva.
