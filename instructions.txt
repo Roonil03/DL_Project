@@ -9,1048 +9,2154 @@ Also ensure to have codes that allow for visualizations to be generated to ensur
 Read the instructions carefully, but do not forget the instructions that are given above. Perform the git commit increments when one chunk/block of the code is done, to ensure proper version control of the code.
 Here are the instructions:
 
-You are the lead Deep Learning/NLP engineer responsible for designing, implementing, testing, documenting, and packaging a complete undergraduate research project for the ICT 4442 Deep Learning course.
-The implementation must be technically sound, reproducible, academically defensible, easy for a student team to explain during a viva, and directly usable for the Synopsis, Interim, and Final submissions.
-Do not fabricate data, metrics, citations, dataset statistics, model results, or claims.
-Every numerical result must come from actual code execution.
-1. PROJECT TITLE
-Use this project title:
-“The Magic Behind the Text: A Deep Learning Comparison for Named Entity Recognition and Relation Extraction in the Harry Potter Universe”
-2. PROJECT IDEA
-Develop and compare multiple Deep Learning architectures for Natural Language Processing using the Kaggle dataset:
-Harry Potter (NER + RE)
-Kaggle dataset:
-[https://www.kaggle.com/datasets/mkdsps/harry-potter-ner-re](https://www.kaggle.com/datasets/mkdsps/harry-potter-ner-re)
-The dataset is specifically designed for Named Entity Recognition and Relation Extraction in the Harry Potter fictional universe.
-The documented entity categories include:
-CHARACTER
-HOUSE
-MAGIC_ITEM
-SPELL
-LOCATION
-The documented relation annotations include multiple relationship types such as:
-friend-of
-enemy-of
-mentor-of
-student-of
-parent-of
-sibling-of
-rival-of
-ally-of
-member-of-house
-founder-of-house
-uses
-owns
-acquires
-gives
-casts
-knows
-teaches
-The Kaggle dataset description also indicates that annotations contain token indices and that a verified golden set is provided.
+# ICT 4442 DEEP LEARNING MINI PROJECT
+
+# MASTER AGENT SPECIFICATION
+
+You are acting as the lead quantitative machine-learning engineer, research engineer, software architect, and reproducibility engineer for an undergraduate Deep Learning research project.
+
+Your job is to DESIGN and BUILD the entire project codebase and Jupyter notebook architecture.
+
 IMPORTANT:
-Do not assume the actual file names, fields, JSON schema, column names, tokenization format, or annotation structure.
-Inspect the downloaded dataset programmatically first.
-3. PRIMARY RESEARCH TASK
-The primary task for the project is:
-Named Entity Recognition / Token Classification
-Given a tokenized paragraph from the Harry Potter dataset, predict the entity tag associated with every token.
-Transform the entity annotations into a BIO tagging scheme:
-B-CHARACTER
-I-CHARACTER
-B-HOUSE
-I-HOUSE
-B-MAGIC_ITEM
-I-MAGIC_ITEM
-B-SPELL
-I-SPELL
-B-LOCATION
-I-LOCATION
-O
-Use BIO rather than BIOES unless there is a strong dataset-specific reason to use another scheme.
-The final token-classification model must assign one label to every input token.
-4. SECONDARY TASK
-Implement Relation Extraction as a secondary analysis/task.
-Given two identified entities within an annotated paragraph, predict the relation between them where an annotated relation exists.
-Example conceptual structure:
-Harry Potter -> friend-of -> Ron Weasley
-Harry Potter -> mentor-of -> Dumbledore
-Harry Potter -> uses -> Wand
-Hermione -> belongs-to/member-of -> Gryffindor
-Do NOT fabricate relation examples.
-Use only relations actually present in the dataset annotations.
-The Relation Extraction component should be included only if the actual dataset structure contains sufficient usable relation annotations.
-If the relation data is too sparse, inconsistent, or incompatible with a reliable experimental design, explicitly report this and make NER the primary completed experiment.
-Never pretend that RE works merely because the dataset description says RE is supported.
-5. IMPORTANT PROJECT STRATEGY
-The project must NOT become an enormous two-task system that is too difficult to complete.
-Priority order:
-Complete NER correctly.
-Compare four DL architectures on NER.
-Produce robust evaluation and visualizations.
-Implement a lightweight RE experiment if the data supports it.
-Generate a knowledge-graph visualization from actual relation predictions/annotations.
-The NER experiment is the primary graded scientific experiment.
-RE is an extension that increases technical sophistication.
-6. FOUR MODELS
-Use four genuinely different neural architectures.
-MODEL 1 — MLP TOKEN CLASSIFIER
-Architecture:
-Token representation
-→ Embedding
-→ Dense layer
-→ Dropout
-→ Dense
-→ Softmax per token
-Purpose:
-This is the feed-forward Deep Learning baseline.
-It does not explicitly model temporal/token-to-token dependencies.
-The MLP must still perform token-level classification.
-Do not reduce the task to document-level classification.
-MODEL 2 — SIMPLE RNN
-Architecture:
-Token IDs
-→ Embedding
-→ SimpleRNN
-→ Dropout
-→ Dense
-→ Softmax
-Use return_sequences=True.
-This allows a prediction for each input token.
-MODEL 3 — BIDIRECTIONAL LSTM
-Architecture:
-Token IDs
-→ Embedding
-→ Bidirectional LSTM
-→ Dropout
-→ Dense
-→ Softmax
-Use return_sequences=True.
-Purpose:
-Allow the model to consider both left and right contextual information.
-MODEL 4 — BIDIRECTIONAL LSTM + ATTENTION
-Architecture:
-Token IDs
-→ Embedding
-→ Bidirectional LSTM
-→ Attention mechanism
-→ Dense
-→ Softmax
-IMPORTANT:
-Because this is token classification, implement attention carefully.
-Do NOT accidentally create a document-level attention classifier that outputs one label for the entire paragraph.
-The architecture must still produce one prediction per token.
-The attention layer must preserve the sequence dimension.
-Prefer a lightweight custom self-attention/token-context layer that produces contextual token representations.
-The attention implementation must be inspectable and explainable.
-Avoid black-box third-party abstractions if they prevent extraction/visualization of attention information.
-7. MODEL COMPARISON REQUIREMENT
-All four NER models must use the same:
-dataset
-selected samples
-train/validation/test partition
-tokenization
-label encoding
-maximum sequence length
-metrics
-evaluation procedure
-The only intended major difference should be the neural architecture.
-This is essential for a fair comparison.
-Do not tune one model heavily while leaving another model at arbitrary defaults unless the report explicitly separates baseline and optimized experiments.
-8. DATASET INSPECTION
-Before building any model, inspect the dataset automatically.
-Print:
-downloaded file names
-file types
-file sizes
-number of examples
-available columns/keys
-first few raw examples
-token fields
-entity annotation fields
-relation annotation fields
-label counts
-missing values
-malformed records
-empty examples
-duplicate examples
-Determine whether the dataset is:
-JSON
-JSONL
-CSV
-multiple files
-nested JSON
-some combination
-Do not assume any of these.
-Build a robust loader after inspection.
-9. DATASET LOADING
-Create a reusable function:
-load_dataset()
-It should:
-Locate the dataset files.
-Identify candidate annotation files.
-Parse the actual structure.
-Normalize the information into an internal representation.
-Recommended internal structure:
-example = {
-"tokens": [...],
-"entities": [...],
-"relations": [...]
-}
-Entities should be normalized to:
-{
-"start": integer,
-"end": integer,
-"label": string
-}
-Relations should be normalized to:
-{
-"head": integer,
-"tail": integer,
-"relation": string
-}
-The exact mapping must be derived from the actual dataset schema.
-Document the mapping in the notebook.
-10. GOLDEN SET
-If the dataset contains a verified golden set:
-identify it explicitly
-inspect its structure
-report its size
-report its annotation categories
-use it appropriately
-Do NOT blindly merge the golden set into training data.
-Determine whether the golden set is intended for evaluation.
-If it is a dedicated verification/evaluation set, preserve it.
-Document the decision.
-11. ENTITY DISTRIBUTION
-Produce a table showing:
-Entity Type
-Count
-CHARACTER
-HOUSE
-MAGIC_ITEM
-SPELL
-LOCATION
-Also calculate:
-number of unique entity mentions
-number of unique surface forms where practical
-entities per document
-sentence/document length distribution
-Do not invent values.
-12. BIO CONVERSION
-Convert span annotations to BIO token labels.
-Example:
-Tokens:
-Harry Potter attended Hogwarts .
-BIO:
-B-CHARACTER
-I-CHARACTER
-O
-B-LOCATION
-O
-If an entity spans multiple tokens, the first token must receive B-LABEL and subsequent tokens must receive I-LABEL.
-Handle overlapping entities carefully.
-If the source annotations contain overlapping/nested entities that cannot be represented by a single BIO label per token:
-Detect the conflict.
-Count how many cases occur.
-Report the issue.
-Implement a defensible policy.
-Do not silently discard the information.
-Prefer a documented precedence policy only if required.
-13. LABEL ENCODING
-Create a complete label mapping.
-Example:
-O -> 0
-B-CHARACTER -> 1
-I-CHARACTER -> 2
-...
-But do NOT assume that exact mapping.
-Generate it programmatically.
-Save:
-label_to_id.json
-and:
-id_to_label.json
-Ensure the same mapping is used across all four models.
-14. TRAIN/VALIDATION/TEST SPLIT
-Split at the document/paragraph/example level.
-NEVER split individual tokens from the same paragraph across train and test.
-This would create severe leakage.
-Preferred:
-70% training
-15% validation
-15% test
-or another defensible split if dataset size requires it.
-Use a fixed random seed.
-Where stratification at the paragraph level is feasible, preserve label distributions as much as possible.
-If exact multilabel stratification is not appropriate, explain why.
-15. LEAKAGE CHECKS
-Implement checks for:
-exact duplicate paragraphs across splits
-identical token sequences across splits
-duplicated annotations
-duplicate examples
-Print the number of overlaps found.
-Do not silently remove legitimate validation/test data merely to improve metrics.
-16. PADDING AND TRUNCATION
-All four models should use the same sequence length.
-Determine maximum sequence length based on the actual dataset distribution.
-Do not blindly choose an arbitrarily huge sequence length.
-Report:
-minimum token length
-median token length
-mean token length
-90th percentile
-95th percentile
-maximum token length
-Choose a defensible maximum length, preferably based on the 95th percentile or another clearly justified threshold.
-Report the proportion of examples/tokens affected by truncation.
-If truncation is substantial, revise the sequence length.
-17. TOKENIZATION
-Because this project compares RNN-family architectures rather than Transformer models:
-Use a conventional word-level tokenizer/vectorizer.
-Fit the vocabulary using TRAINING DATA ONLY.
-Then transform validation and test.
-Do not fit vocabulary on the full dataset.
-Record:
-vocabulary size
-unknown token strategy
-padding method
-maximum sequence length
-Use an out-of-vocabulary token.
-Do not let test data influence vocabulary creation.
-18. SPECIAL TOKENS
-Use clear handling for:
-padding
-unknown tokens
-Ensure padding tokens do not artificially dominate the loss.
-Use masking where appropriate.
-The MLP, RNN, LSTM and BiLSTM+Attention models must all handle padded tokens consistently.
-19. LOSS FUNCTION
-Use an appropriate token-level multiclass loss.
-Preferred:
-SparseCategoricalCrossentropy
-with masking/ignoring padded positions as appropriate.
-Do not calculate loss on artificial padding tokens.
-Verify this behavior.
-20. CLASS IMBALANCE
-NER datasets normally have many more O tokens than entity tokens.
-Do not rely only on token accuracy.
-Compute:
-token accuracy
-macro precision
-macro recall
-macro F1
-weighted F1
-Also calculate entity-focused metrics.
-At minimum:
-non-O macro F1
-per-entity-class precision
-per-entity-class recall
-per-entity-class F1
-Prefer actual entity-level evaluation using span reconstruction where practical.
-21. ENTITY-LEVEL EVALUATION
-Reconstruct predicted BIO spans.
-Compare predicted spans to gold spans.
-Report:
-exact entity precision
-exact entity recall
-exact entity F1
-Also provide results per entity type:
-CHARACTER
-HOUSE
-MAGIC_ITEM
-SPELL
-LOCATION
-This should be one of the most important result tables in the final report.
-Explain that token-level performance and exact span-level performance measure different aspects of NER quality.
-22. MODEL TRAINING
-Use common training configuration initially.
-Suggested baseline:
-optimizer = Adam
-Learning rate = 0.001 initially, unless actual experiments justify modification.
-Embedding dimension = modest, such as 64 or 128.
-Recurrent hidden size = modest, such as 64 or 128.
-Dropout = approximately 0.2–0.4.
-Batch size = 16 or 32 depending on resource availability.
-Maximum epochs = approximately 20–30.
+
+You are NOT being asked to execute the expensive model-training experiments.
+
+You ARE being asked to:
+
+* inspect and understand the selected datasets
+* design the complete research methodology
+* construct the preprocessing pipeline
+* implement the base model/pipeline
+* implement all four model architectures
+* implement the training/evaluation infrastructure
+* implement regime analysis
+* implement backtesting
+* implement risk metrics
+* implement visualization
+* implement tests
+* implement configuration files
+* implement requirements/environment files
+* create the complete Jupyter notebook
+* create documentation
+* create a reproducible repository structure
+
+The project should be executable later by the students.
+
+Do not run the full training experiments.
+
+You may run lightweight syntax/import/unit checks if needed to verify that the code is internally coherent, but do not train the four large models or generate fabricated experimental results.
+
+Never fabricate results.
+
+---
+
+# 1. PROJECT TITLE
+
 Use:
-EarlyStopping
-ReduceLROnPlateau
-Restore best weights.
-Do not use excessively large architectures.
-The project should run on a normal student laptop and optionally benefit from a GPU.
-23. REPRODUCIBILITY
-Set seeds for:
-Python random
-NumPy
-TensorFlow
-Print:
-Python version
-TensorFlow version
-NumPy version
-Pandas version
-Scikit-learn version
-Print:
-CPU/GPU availability
-Use deterministic settings where reasonably supported.
-Document anything that prevents complete bit-level determinism.
-24. TRAINING HISTORY
-Save the training history for every model.
-Create training curves for:
-training loss
-validation loss
-Do not rely on accuracy alone.
-For token-level NER, accuracy may be misleading.
-Where feasible, calculate validation macro F1 after each epoch and plot it.
-If this complicates the Keras training loop, use a custom callback or evaluate after each epoch.
-25. NER VISUALIZATIONS
-The notebook must contain polished visualizations suitable for the final report.
-Minimum required figures:
-Entity-type distribution
-Label/BIO-tag distribution
-Paragraph length distribution
-Entity count per paragraph
-Class imbalance visualization
-MLP training/validation loss
-SimpleRNN training/validation loss
-BiLSTM training/validation loss
-BiLSTM+Attention training/validation loss
-Model comparison by token accuracy
-Model comparison by macro F1
-Model comparison by entity-level F1
-Per-entity-class F1 comparison
-Confusion matrix for the best model
-Confusion matrix for each model if computationally practical
-All figures must contain:
-title
-axis labels
-readable typography
-appropriate legend where required
-sensible figure size
-saved high-resolution output
-Save figures under:
-results/figures/
-26. NER ERROR ANALYSIS
-This is mandatory.
-Identify actual examples where the best model:
-predicted the wrong entity type
-missed an entity completely
-partially identified an entity
-merged separate entities
-confused two entity types
-Create a table such as:
-Text
-Gold
-Prediction
-Error Type
-Only use real test examples.
-Do not invent examples.
-Analyse why errors occurred.
-Possible explanations include:
-ambiguous words
-insufficient context
-rare entity types
-unseen entities
-similar lexical patterns
-long-range context
-class imbalance
-truncation
-tokenization errors
-Only claim a cause when supported by evidence.
-27. ATTENTION VISUALIZATION
-For the BiLSTM+Attention model, extract attention weights.
-Create a visualization where the input tokens are displayed with an interpretable representation of attention strength.
-For example:
-Token Attention Weight
-Harry 0.12
-visited 0.04
-the 0.01
-Hogwarts 0.43
-Do not claim:
-“Attention proves that this word caused the prediction.”
-Instead describe the visualization as:
-“Tokens receiving higher attention weights according to the model.”
-Select both:
-correctly predicted examples
-incorrectly predicted examples
-This can become a strong presentation slide.
-28. RELATION EXTRACTION
-After NER is working, inspect the relation data.
-Determine:
-number of relation types
-number of relation instances
-relation distribution
-average number of relations per paragraph
-entity-pair distribution
-Create:
-relation_counts.csv
-and a relation-frequency visualization.
-Do NOT proceed directly to a complicated end-to-end graph model.
-Use a lightweight supervised relation classifier.
-29. RELATION EXTRACTION INPUT
-For each annotated relation:
-Input:
-surrounding paragraph context
-head entity
-tail entity
-entity types
-token context
-Output:
-relation label.
-For negative examples, sample entity pairs without annotated relations.
+
+**Benchmarking Deep Learning Architectures for Financial Time-Series Prediction and Risk Optimization under Market Regimes**
+
+Optional subtitle:
+
+**A Unified Sharpe-Ratio Benchmark of Linear, Recurrent, State-Space and Attention-Based Architectures**
+
+---
+
+# 2. CORE RESEARCH PROBLEM
+
+Financial time series exhibit:
+
+* low signal-to-noise ratios
+* volatility clustering
+* non-stationarity
+* changing correlations
+* weak and time-varying predictability
+* abrupt structural changes
+* regime-dependent behavior
+
+Recent work has shown that the architecture used for financial time-series modelling can materially affect risk-adjusted trading performance.
+
+Saly-Kaufmann et al. (2026), “Deep Learning for Financial Time Series: A Large-Scale Benchmark of Risk-Adjusted Performance,” already benchmarks multiple architectural families under a Sharpe-ratio optimization framework and evaluates risk, robustness, transaction costs and computational efficiency.
+
+Therefore, DO NOT claim that the literature has never performed standardized architectural benchmarking.
+
+Instead, frame the project as an independent benchmark and extension.
+
+---
+
+# 3. RESEARCH GAP
+
+Use the following refined research gap:
+
+## Gap A — External validity
+
+Existing recent benchmarks, including Saly-Kaufmann et al. (2026), are based on particular asset universes and backtesting protocols.
+
+It remains valuable to determine whether conclusions about architectural robustness generalize to an independent publicly available multi-market dataset containing US and Indian assets, commodities, foreign exchange and bond-market information.
+
+## Gap B — Regime-conditioned architecture ranking
+
+Aggregate Sharpe ratio can conceal significant differences in performance across market regimes.
+
+This project therefore explicitly studies whether architecture ranking remains stable across:
+
+* low-volatility regimes
+* high-volatility regimes
+* bullish regimes
+* bearish regimes
+* crisis/stress regimes
+* recovery regimes
+
+## Gap C — Predictive versus economic performance
+
+Traditional time-series model evaluation often emphasizes predictive losses such as MSE or MAE.
+
+This project studies whether predictive improvements translate into actual risk-adjusted economic performance under a consistent trading framework.
+
+## Gap D — Complexity versus robustness
+
+The project examines whether additional architectural complexity produces enough improvement in risk-adjusted returns to justify:
+
+* parameter count
+* computational cost
+* training time
+* sensitivity to market regimes
+* turnover
+
+---
+
+# 4. CENTRAL HYPOTHESIS
+
+The project does NOT assume that the most complex model must win.
+
+Primary hypothesis:
+
+> Models with stronger temporal representation capabilities may achieve superior risk-adjusted performance, but their advantage may not remain constant across market regimes.
+
+Secondary hypothesis:
+
+> The architecture with the highest aggregate Sharpe ratio may differ from the architecture with the best crisis-regime stability.
+
+Third hypothesis:
+
+> Improved predictive accuracy does not necessarily imply improved portfolio Sharpe ratio.
+
+Fourth hypothesis:
+
+> Architectural complexity may provide diminishing economic returns relative to computational cost.
+
+All hypotheses must remain empirical hypotheses.
+
+Do not fabricate outcomes.
+
+---
+
+# 5. PRIMARY DATASET
+
+Use:
+
+## Global & Indian Financial Markets Dataset 2025
+
+Kaggle:
+
+https://www.kaggle.com/datasets/muzaddidafaque/global-and-indian-financial-markets-dataset-2025
+
+The Kaggle description indicates daily data spanning approximately 2010–2025 and including market information for:
+
+* NIFTY 50
+* S&P 500
+* USD/INR
+* Gold
+* Brent crude
+* US 10-year yield
+* India 10-year yield
+
+plus macroeconomic variables.
+
 IMPORTANT:
-Negative sampling must be done only using training data rules.
-Do not accidentally create test labels using training information.
-30. RELATION MODEL
-Use a simple neural architecture for the secondary RE task.
-Possible architecture:
-Context token embeddings
+
+Do not assume the exact file names or columns.
+
+The agent MUST inspect the downloaded dataset and document:
+
+* files
+* columns
+* data types
+* frequency
+* date coverage
+* missing values
+* duplicate rows
+* asset identifiers
+* source fields
+* license information
+
+Verify the dataset page before making any licensing assertion.
+
+---
+
+# 6. SECONDARY DATASET FOR ROBUSTNESS
+
+Optionally use:
+
+## S&P 500 Stocks — Daily Historical Data (10 Years)
+
+https://www.kaggle.com/datasets/innacampo/s-and-p-500-stocks-daily-historical-data-10-years
+
+This contains OHLCV data for current S&P 500 constituents over approximately 2015–2025.
+
+Use this only as a secondary cross-sectional robustness experiment.
+
+IMPORTANT:
+
+The dataset contains current constituents, so survivorship bias may exist.
+
+The report must explicitly discuss this.
+
+Do not claim that this is an unbiased historical constituent universe.
+
+---
+
+# 7. OPTIONAL SANITY-CHECK DATASET
+
+Optionally inspect:
+
+## SP500_2005-2025
+
+https://www.kaggle.com/datasets/ancyneuray/sp500-2005-2025
+
+This can be used as a single-index sanity check.
+
+Do not use it as the main multi-asset benchmark.
+
+---
+
+# 8. DATASET SELECTION LOGIC
+
+The pipeline should support multiple datasets through configuration.
+
+Use:
+
+configs/data_config.yaml
+
+The primary experiment must use the Global & Indian dataset.
+
+Do not hard-code column names throughout the code.
+
+Create a dataset adapter layer.
+
+Example:
+
+src/data/
+
+```
+base_dataset.py
+global_indian_dataset.py
+sp500_dataset.py
+```
+
+---
+
+# 9. PROJECT TASK
+
+Do NOT define the task primarily as price prediction.
+
+The primary objective is:
+
+## Risk-aware directional signal generation
+
+Given a historical window:
+
+X_t
+
+predict a bounded directional signal:
+
+s_t ∈ [-1,1]
+
+for each selected asset.
+
+The signal is then converted to a volatility-scaled portfolio position.
+
+---
+
+# 10. TIME-SERIES INPUT
+
+Each sample must contain a rolling lookback window.
+
+Define:
+
+X_t ∈ R^(L × F)
+
+where:
+
+L = lookback length
+
+F = number of features
+
+Make L configurable.
+
+Default candidate:
+
+20 trading days
+
+Possible sensitivity experiment:
+
+20, 60, 120 trading days
+
+Do NOT execute these experiments.
+
+Build the configuration and code infrastructure for them.
+
+---
+
+# 11. FEATURE ENGINEERING
+
+Feature engineering must use only information available at time t.
+
+Candidate features:
+
+## Price/return features
+
+* daily return
+* log return
+* cumulative return
+* rolling return
+* rolling volatility
+* high-low range
+* open-close return
+
+## Momentum
+
+* 5-day momentum
+* 20-day momentum
+* 60-day momentum
+
+## Volatility
+
+* rolling 5-day volatility
+* rolling 20-day volatility
+* exponentially weighted volatility
+
+## Volume/liquidity where available
+
+* log volume
+* volume change
+* volume z-score
+
+## Cross-asset features
+
+* rolling correlation
+* relative momentum
+* cross-sectional return rank
+* risk-on/risk-off spread
+
+## Macro features
+
+Use only macro values that were actually available by the relevant timestamp.
+
+Do not forward-fill future information backwards.
+
+---
+
+# 12. TARGET CONSTRUCTION
+
+Construct future return targets using:
+
+r_(t+1,k)
+
+where k is the asset.
+
+The model output should represent directional conviction.
+
+Recommended output:
+
+tanh(head(hidden_state))
+
+so that:
+
+s_(t,k) ∈ [-1,1]
+
+Do not use future data in feature construction.
+
+Perform all target alignment after preserving temporal order.
+
+---
+
+# 13. LEAKAGE PREVENTION
+
+This is one of the most important requirements.
+
+The agent must explicitly test for:
+
+* future-data leakage
+* look-ahead bias
+* scaler leakage
+* feature leakage
+* target leakage
+* regime-label leakage
+* survivorship bias
+* duplicate timestamps
+
+Scaling/statistical normalization MUST be fitted only on training data or within a walk-forward framework.
+
+Do not fit a StandardScaler on the entire dataset.
+
+Do not calculate rolling features using future observations.
+
+---
+
+# 14. DATA SPLIT
+
+Do NOT use random train/test splitting.
+
+Financial time series must preserve chronology.
+
+Implement:
+
+TRAIN
+VALIDATION
+TEST
+
+using chronological boundaries.
+
+Default:
+
+60% train
+20% validation
+20% test
+
+But make the dates configurable.
+
+Prefer explicit dates if the dataset permits.
+
+---
+
+# 15. WALK-FORWARD EVALUATION
+
+Build infrastructure for rolling/walk-forward evaluation.
+
+Example:
+
+Train:
+2010–2017
+
+Validate:
+2018–2019
+
+Test:
+2020
+
+then roll forward.
+
+The exact dates must be generated from the available dataset.
+
+Do not assume all years are present.
+
+The final project should support:
+
+* expanding-window walk-forward
+* rolling-window evaluation
+
+Make the choice configurable.
+
+---
+
+# 16. BASE MODEL / PIPELINE
+
+Implement the complete base pipeline around a simple DLinear-style baseline.
+
+The baseline should represent:
+
+Input window
+→ decomposition into trend/residual components if using DLinear
+→ linear mapping over the historical window
+→ output signal
+→ tanh
+→ portfolio construction
+→ Sharpe optimization
+
+If a strict DLinear implementation is inconvenient because of the multivariate portfolio setup, implement a transparent DLinear-inspired architecture and document the adaptation.
+
+Do NOT silently call an unrelated MLP “DLinear.”
+
+---
+
+# 17. MODEL 1 — DLINEAR / LINEAR BASELINE
+
+Purpose:
+
+Test the extent to which simple learned temporal mappings can generate economically useful signals.
+
+Architecture:
+
+Input
+→ temporal decomposition / normalization as appropriate
+→ linear projection
+→ tanh signal head
+
+No recurrent state.
+
+No self-attention.
+
+No Mamba.
+
+No complex feature extractor.
+
+Document exactly what is implemented.
+
+---
+
+# 18. MODEL 2 — LSTM
+
+Architecture:
+
+Input sequence
+→ feature projection
+→ LSTM
+→ last/aggregated hidden representation
+→ linear head
+→ tanh
+
+The model must output one bounded trading signal per asset.
+
+Use configurable:
+
+* hidden size
+* number of layers
+* dropout
+
+---
+
+# 19. MODEL 3 — MAMBA / STATE-SPACE MODEL
+
+Implement a Mamba-family model appropriate for multivariate time series.
+
+Preferred:
+
+Mamba or Mamba-2 implementation using a maintained PyTorch library.
+
+Before coding:
+
+inspect package API/version compatibility.
+
+Do NOT assume a package import path.
+
+Make Mamba an optional dependency if necessary.
+
+Provide a fallback state-space implementation only if the external package is not practical.
+
+Do not replace Mamba silently with an LSTM.
+
+The report must clearly distinguish:
+
+Mamba
+
+from
+
+generic state-space approximations.
+
+Architecture:
+
+Input
+→ feature embedding
+→ Mamba block(s)
+→ terminal sequence representation
+→ linear head
+→ tanh
+
+---
+
+# 20. MODEL 4 — PATCHTST
+
+Implement PatchTST for the time-series architecture comparison.
+
+Architecture:
+
+Input
+→ temporal patching
+→ patch embedding
+→ Transformer encoder
+→ aggregation/representation
+→ linear head
+→ tanh
+
+Make configurable:
+
+* patch length
+* stride
+* embedding dimension
+* number of heads
+* number of encoder layers
+* dropout
+
+Avoid enormous Transformer configurations.
+
+This is an undergraduate benchmark.
+
+---
+
+# 21. FAIR COMPARISON
+
+All models must share:
+
+* same dataset
+* same features
+* same lookback
+* same training/validation/test split
+* same target
+* same portfolio construction
+* same volatility target
+* same transaction-cost convention
+* same evaluation metrics
+* same random-seed policy
+
+Only the architecture should materially differ.
+
+---
+
+# 22. PORTFOLIO CONSTRUCTION
+
+The model output is:
+
+s_(t,k) ∈ [-1,1]
+
+Estimate ex-ante volatility:
+
+sigma_(t,k)
+
+using an EWMA estimator.
+
+Use:
+
+# position_(t,k)
+
+signal_(t,k)
+*
+target_volatility
+/
+estimated_volatility_(t,k)
+
+Set the default target portfolio volatility to:
+
+10%
+
+Make it configurable.
+
+Do not allow accidental infinite leverage.
+
+Implement a configurable maximum leverage cap.
+
+Example:
+
+max_leverage = 3.0
+
+If the cap is triggered, log the percentage of observations affected.
+
+---
+
+# 23. PORTFOLIO AGGREGATION
+
+For the primary benchmark use equal risk capital across eligible assets.
+
+Aggregate:
+
+R_(t+1)^portfolio
+
+as the cross-sectional average of asset strategy returns.
+
+Handle missing assets carefully.
+
+Do not treat missing values as zero returns without documenting the rationale.
+
+---
+
+# 24. SHARPE-OPTIMIZED TRAINING
+
+The default training objective should be differentiable negative annualized Sharpe ratio.
+
+Use:
+
+Loss = -Sharpe
+
+with:
+
+Sharpe =
+mean(portfolio_returns)
+/
+sqrt(var(portfolio_returns) + epsilon)
+*
+sqrt(252)
+
+Implement this as a PyTorch loss module:
+
+src/losses.py
+
+class NegativeSharpeLoss(nn.Module)
+
+The loss must include numerical stability.
+
+---
+
+# 25. BATCHED SHARPE OPTIMIZATION
+
+Be careful.
+
+Sharpe ratio is not naturally a single-sample loss.
+
+Do not compute a meaningless Sharpe ratio over individual observations.
+
+Use:
+
+* sequence batches
+* pooled portfolio returns across the batch where appropriate
+* documented batch construction
+
+Document the design decision in the notebook.
+
+---
+
+# 26. SECONDARY PREDICTION LOSS
+
+Optionally support a combined objective:
+
+Loss =
+alpha * NegativeSharpe
 +
-head entity representation
-+
-tail entity representation
-→ concatenation
-→ Dense
-→ Dropout
-→ Dense
-→ Softmax
-Optionally add an LSTM context encoder.
-The relation extraction component does not need four different architectures.
-The main 3–4 architecture comparison is the NER experiment.
-31. RELATION METRICS
-For RE calculate:
-accuracy
-macro precision
-macro recall
-macro F1
-Because relation classes may be imbalanced, macro F1 is especially important.
-Show the confusion matrix.
-Show the top relation classes.
-Do not oversell RE if the dataset has too few examples.
-32. KNOWLEDGE GRAPH VISUALIZATION
-Use NetworkX and Matplotlib.
-Construct a graph from the annotated/predicted relations.
-Example concept:
-Harry Potter
-|
-friend-of
-|
-Ron Weasley
-Hermione Granger
-|
-member-of-house
-|
-Gryffindor
-Only draw relationships supported by actual data.
+(1-alpha) * prediction_loss
+
+Make this configurable.
+
+Default:
+
+alpha = 1.0
+
+The main reported experiment should use pure Sharpe optimization if computationally stable.
+
+Only introduce hybrid loss in a later sensitivity experiment.
+
+---
+
+# 27. TRANSACTION COSTS
+
+Do not ignore trading frictions completely.
+
+Primary training:
+
+gross returns
+
+Then perform a post-hoc transaction-cost sensitivity analysis.
+
+Evaluate:
+
+0 bps
+1 bps
+5 bps
+10 bps
+20 bps
+
+or sensible asset-specific rates if justified.
+
+Transaction costs should depend on turnover:
+
+cost_t =
+transaction_cost_rate
+*
+absolute(position_t - position_(t-1))
+
+Report:
+
+* gross Sharpe
+* net Sharpe
+* turnover
+* breakeven transaction cost
+
+---
+
+# 28. CORE RISK METRICS
+
+Every model must be evaluated using:
+
+## Return metrics
+
+* cumulative return
+* annualized return
+
+## Risk-adjusted metrics
+
+* annualized Sharpe
+* Sortino
+* Calmar if appropriate
+* Omega if implemented
+
+## Risk metrics
+
+* annualized volatility
+* maximum drawdown
+* downside deviation
+* VaR
+* CVaR / expected shortfall if computationally feasible
+
+## Trading metrics
+
+* turnover
+* average leverage
+* maximum leverage
+* percentage long
+* percentage short
+
+## Stability
+
+* performance by seed
+* performance by regime
+
+---
+
+# 29. CRUCIAL REGIME ANALYSIS
+
+This is the main research extension.
+
+The notebook must classify market environments using information available at time t.
+
+Do NOT let the future determine the regime label.
+
+---
+
+# 30. REGIME DEFINITION
+
+Implement at least one transparent unsupervised or rules-based regime framework.
+
+Preferred primary approach:
+
+## Volatility × Trend Regime
+
+Calculate:
+
+* rolling annualized volatility
+* medium-term market trend / momentum
+
+Classify:
+
+Low Volatility + Positive Trend
+High Volatility + Positive Trend
+Low Volatility + Negative Trend
+High Volatility + Negative Trend
+
+Optional fifth regime:
+
+Extreme Stress
+
+defined using an extreme volatility percentile.
+
+Use quantile thresholds derived from the training period only.
+
+Do not calculate thresholds from the complete dataset.
+
+---
+
+# 31. OPTIONAL REGIME METHOD
+
+Also support a Hidden Markov Model or clustering-based regime detector.
+
+This should be optional.
+
+Possible features:
+
+* market return
+* realized volatility
+* drawdown
+* VIX where available
+* cross-asset correlation
+
+But do not make HMM a required dependency.
+
+The primary project should remain reproducible.
+
+---
+
+# 32. REGIME-STRATIFIED EVALUATION
+
+For every model calculate:
+
+* Sharpe by regime
+* Sortino by regime
+* cumulative return by regime
+* volatility by regime
+* maximum drawdown by regime
+* average turnover by regime
+
+Produce a table:
+
+| Model | Regime | Sharpe | Sortino | Return | Volatility | Max DD |
+| ----- | ------ | -----: | ------: | -----: | ---------: | -----: |
+
+---
+
+# 33. REGIME ROBUSTNESS SCORE
+
+Create a clearly documented robustness statistic.
+
+Do NOT invent a magical score without justification.
+
+Possible formulation:
+
+Regime Robustness =
+mean(regime Sharpe)
+-------------------
+
+lambda * std(regime Sharpe)
+
+or report:
+
+* mean regime Sharpe
+* standard deviation of regime Sharpe
+* worst-regime Sharpe
+
+The safest primary presentation is to report these separately.
+
+Do not hide the components inside one opaque number.
+
+---
+
+# 34. REGIME DEGRADATION
+
+Measure:
+
+BestRegimeSharpe
+minus
+WorstRegimeSharpe
+
+and:
+
+WorstRegimeSharpe
+
+This directly answers:
+
+> Which architecture collapses most strongly when market conditions deteriorate?
+
+---
+
+# 35. CRISIS ANALYSIS
+
+Where the dataset permits, identify major stress periods.
+
+Do NOT simply hard-code famous dates unless they exist within the dataset.
+
+Possible periods include:
+
+* COVID-19 shock
+* 2022 inflation/rate shock
+* 2023 banking stress
+
+But the actual regime labels should be generated from the market data.
+
+The report may then discuss notable historical periods as contextual examples.
+
+---
+
+# 36. PERFORMANCE-RANK STABILITY
+
+For each regime:
+
+rank the four models by Sharpe.
+
+Then calculate how often:
+
+* the overall winner remains winner
+* rankings reverse
+* individual models move from top to bottom
+
+This produces a highly useful table:
+
+| Regime | Rank 1 | Rank 2 | Rank 3 | Rank 4 |
+| ------ | ------ | ------ | ------ | ------ |
+
+---
+
+# 37. PREDICTIVE VS ECONOMIC PERFORMANCE
+
+If the architecture outputs a directional signal, also calculate conventional predictive metrics where meaningful.
+
+For example:
+
+* directional accuracy
+* MSE
+* MAE
+* correlation between predicted signal and next-period return
+
+But the main objective remains economic:
+
+* Sharpe
+* Sortino
+* drawdown
+
+The report must explicitly investigate whether predictive accuracy correlates with Sharpe.
+
+---
+
+# 38. IMPORTANT RESEARCH ANALYSIS
+
+Create a scatter plot:
+
+x-axis:
+Predictive Performance
+
+y-axis:
+Sharpe Ratio
+
+Each point = model × regime.
+
+The purpose is to show whether predictive metrics are actually aligned with economic performance.
+
+---
+
+# 39. MODEL COMPLEXITY ANALYSIS
+
+For each architecture calculate:
+
+* total parameters
+* trainable parameters
+* approximate memory
+* training time
+* inference time where possible
+
 Create:
-results/figures/harry_potter_relation_graph.png
-Limit the graph to a readable subset of entities/relations.
-Do not plot hundreds of nodes in one unreadable figure.
-Possible choices:
-top connected characters
-one selected character such as Harry if sufficiently represented
-one relation type at a time
-a small community of entities
-The selection rule must be documented.
-33. FINAL MODEL COMPARISON
-Create a final table:
-Model
-Token Accuracy
-Macro Precision
-Macro Recall
-Token Macro F1
-Entity F1
-Parameters
-Training Time
-MLP
-SimpleRNN
-BiLSTM
-BiLSTM + Attention
-The actual values must be produced by the executed code.
-Do not insert example values into the final results table.
-34. RESEARCH QUESTIONS
-Use the following research questions:
-RQ1
-How effectively can Deep Learning architectures identify named entities in Harry Potter text?
-RQ2
-How does sequential modelling affect NER performance compared with a feed-forward token-classification baseline?
-RQ3
-Does bidirectional recurrent modelling improve entity recognition compared with a unidirectional recurrent architecture?
-RQ4
-Does incorporating attention improve contextual token classification and entity-level recognition?
-Optional:
-RQ5
-Can the annotated entity and relation information be used to construct a meaningful Harry Potter knowledge graph?
-35. PROJECT OBJECTIVES
-Use these concise objectives:
-To develop a Deep Learning-based Named Entity Recognition system for identifying characters, houses, magical items, spells, and locations in Harry Potter text.
-To compare feed-forward, recurrent, bidirectional LSTM, and attention-enhanced recurrent architectures using a common experimental protocol.
-To evaluate whether sequential context and attention improve token-level and entity-level NER performance.
-To investigate the feasibility of relation extraction and knowledge-graph construction from the annotated fictional text.
-36. HYPOTHESES
-Do NOT present these as facts.
-Use them as hypotheses:
-H1:
-Recurrent architectures will outperform the MLP baseline because they can exploit sequential context.
-H2:
-Bidirectional LSTM will outperform SimpleRNN because it can integrate both preceding and following contextual information.
-H3:
-BiLSTM with attention may improve entity-level F1 by emphasizing informative contextual tokens.
-H4:
-Relation-extraction annotations can support a meaningful graphical representation of relationships among entities.
-The actual results must determine whether these hypotheses are supported.
-37. LITERATURE REVIEW SUPPORT
-The project needs at least 8–10 papers for the interim submission and 12+ references for the final report.
-The agent must NOT fabricate papers.
-The literature search should cover:
-Named Entity Recognition
-Neural sequence labelling
-RNNs
-LSTM
-Bidirectional LSTM
-Attention
-Relation extraction
-Neural relation extraction
-Sequence tagging evaluation
-Fictional-domain NLP if relevant
-At minimum include legitimate foundational work such as:
-Hochreiter, S., & Schmidhuber, J. (1997).
-Long Short-Term Memory.
-Also identify genuine subsequent papers from reliable scholarly sources.
-Verify:
-author names
-paper title
-venue
-publication year
-DOI where applicable
-Do not fabricate a citation merely to reach “12 references.”
-38. IMPORTANT ACADEMIC-INTEGRITY REQUIREMENT
-The student report must clearly disclose use of AI/LLM tools according to the course instruction.
-The code must be original enough for the students to understand and defend.
-Do not generate a report that pretends the students did not use an AI coding assistant.
-The README should contain an appropriate note that external AI assistance may have been used during development, subject to the university/course policy.
-The final report should contain a transparent acknowledgement appropriate to the course rules.
-39. COPYRIGHT / DATASET HANDLING
-The Kaggle dataset page identifies the dataset as Apache 2.0, but the agent must verify the actual dataset page and repository contents before making licensing claims.
-Do not redistribute external copyrighted source text unnecessarily.
-The GitHub repository should contain:
-data/README.md
-explaining how to obtain the dataset rather than automatically committing the raw dataset if redistribution is questionable.
-Do not place the full source text into the Git repository merely for convenience.
-40. VIRTUAL ENVIRONMENT
-Create a complete Python environment.
-Use Python 3.11 unless actual dependency compatibility requires otherwise.
+
+Complexity vs Sharpe
+
+plot.
+
+Then discuss:
+
+> Is more complexity economically justified?
+
+---
+
+# 40. RANDOM-SEED ROBUSTNESS
+
+Design the training system to support:
+
+5 random seeds
+
+but DO NOT execute these experiments now.
+
+Make:
+
+seeds = [42, 52, 62, 72, 82]
+
+configurable.
+
+Save results in:
+
+results/seed_runs/
+
+Final research tables should be able to aggregate:
+
+mean Sharpe
+std Sharpe
+median Sharpe
+best Sharpe
+worst Sharpe
+
+---
+
+# 41. HYPERPARAMETER TUNING
+
+Build configuration infrastructure for fair tuning.
+
+Do not perform the expensive tuning now.
+
+Use a small configurable search space.
+
+Example:
+
+DLinear:
+
+* lookback: [20, 60, 120]
+
+LSTM:
+
+* hidden_dim: [64, 128]
+* layers: [1, 2]
+* dropout: [0.1, 0.3]
+
+Mamba:
+
+* d_model: [64, 128]
+* layers: [1, 2]
+
+PatchTST:
+
+* patch_length: [5, 10]
+* heads: [4, 8]
+* layers: [2, 3]
+
+The exact search spaces should be controlled to keep the undergraduate project computationally reasonable.
+
+---
+
+# 42. AVOIDING OPTIMIZATION BIAS
+
+Do not tune the model on the test set.
+
+Use:
+
+TRAIN → hyperparameter tuning
+
+VALIDATION → model selection
+
+TEST → final untouched evaluation
+
+If using walk-forward validation, explicitly document all decisions.
+
+---
+
+# 43. BASELINE MODELS
+
+Besides the four required architectures, support optional benchmark baselines:
+
+* buy-and-hold
+* equal-weight
+* volatility-targeted momentum
+* AR(1)
+* zero-signal / cash
+
+These are benchmark strategies, not additional DL architectures.
+
+They help establish whether the neural models add economic value.
+
+---
+
+# 44. NO CNN
+
+Do not use:
+
+* CNN
+* ResNet
+* image transforms
+* chart-image representations
+* computer vision
+
+This project is pure numerical time-series Deep Learning.
+
+---
+
+# 45. PYTORCH
+
+Use PyTorch as the primary framework.
+
+Reason:
+
+* Mamba implementations are strongly supported in Python/PyTorch
+* custom Sharpe loss is straightforward
+* architecture comparison is transparent
+* PatchTST is easy to implement modularly
+* reproducibility is manageable
+
+Use PyTorch throughout the project.
+
+---
+
+# 46. PROJECT STRUCTURE
+
 Create:
-requirements.txt
-and optionally:
-environment.yml
-The project must work in a virtual environment.
-Setup instructions must include:
-python -m venv .venv
-Platform-specific activation instructions.
-Then:
-pip install --upgrade pip
-pip install -r requirements.txt
-Then:
-python -m ipykernel install --user --name hp-ner-dl --display-name "Harry Potter NER DL"
-The notebook must be able to select the correct kernel.
-41. DEPENDENCIES
-Use only packages actually needed.
-Expected core libraries include:
-tensorflow
+
+financial_dl_benchmark/
+
+├── README.md
+├── LICENSE
+├── requirements.txt
+├── pyproject.toml
+├── environment.yml
+├── .gitignore
+│
+├── configs/
+│   ├── data.yaml
+│   ├── training.yaml
+│   ├── regime.yaml
+│   ├── models.yaml
+│   └── backtest.yaml
+│
+├── notebooks/
+│   └── financial_time_series_benchmark.ipynb
+│
+├── src/
+│   ├── **init**.py
+│   ├── config.py
+│   ├── seed.py
+│   │
+│   ├── data/
+│   │   ├── **init**.py
+│   │   ├── loaders.py
+│   │   ├── adapters.py
+│   │   ├── features.py
+│   │   ├── scaling.py
+│   │   ├── windows.py
+│   │   └── splits.py
+│   │
+│   ├── models/
+│   │   ├── **init**.py
+│   │   ├── dlinear.py
+│   │   ├── lstm.py
+│   │   ├── mamba_model.py
+│   │   └── patchtst.py
+│   │
+│   ├── losses/
+│   │   ├── **init**.py
+│   │   └── sharpe_loss.py
+│   │
+│   ├── portfolio/
+│   │   ├── **init**.py
+│   │   ├── volatility_targeting.py
+│   │   ├── position_sizing.py
+│   │   └── transaction_costs.py
+│   │
+│   ├── regimes/
+│   │   ├── **init**.py
+│   │   ├── rules.py
+│   │   ├── clustering.py
+│   │   └── evaluation.py
+│   │
+│   ├── training/
+│   │   ├── **init**.py
+│   │   ├── trainer.py
+│   │   └── callbacks.py
+│   │
+│   ├── evaluation/
+│   │   ├── **init**.py
+│   │   ├── metrics.py
+│   │   ├── statistical_tests.py
+│   │   └── regime_metrics.py
+│   │
+│   ├── backtest/
+│   │   ├── **init**.py
+│   │   └── backtester.py
+│   │
+│   └── visualization/
+│       ├── **init**.py
+│       ├── performance.py
+│       ├── regimes.py
+│       └── comparisons.py
+│
+├── tests/
+│   ├── test_data.py
+│   ├── test_features.py
+│   ├── test_losses.py
+│   ├── test_models.py
+│   ├── test_backtest.py
+│   └── test_regimes.py
+│
+├── data/
+│   └── README.md
+│
+└── results/
+├── figures/
+├── tables/
+├── predictions/
+└── backtests/
+
+---
+
+# 47. JUPYTER NOTEBOOK
+
+Create:
+
+notebooks/financial_time_series_benchmark.ipynb
+
+The notebook must contain a complete research workflow.
+
+It must NOT train the four models when first opened.
+
+Instead:
+
+* load data
+* validate data
+* inspect features
+* explain methodology
+* instantiate model architectures
+* display model summaries
+* create training functions
+* create evaluation functions
+* create backtesting functions
+* demonstrate one tiny synthetic dry-run where absolutely necessary to validate tensor shapes
+
+The full training cells should be clearly marked as:
+
+“OPTIONAL — EXECUTE TO TRAIN”
+
+and should not automatically execute.
+
+Do not accidentally train models during notebook initialization.
+
+---
+
+# 48. NOTEBOOK SECTION ORDER
+
+Use exactly this structure:
+
+## 1. Title
+
+## 2. Research Problem
+
+## 3. Research Gap
+
+## 4. Research Questions
+
+## 5. Hypotheses
+
+## 6. Dataset
+
+## 7. Environment
+
+## 8. Reproducibility
+
+## 9. Data Loading
+
+## 10. Data Quality Checks
+
+## 11. Exploratory Analysis
+
+## 12. Feature Engineering
+
+## 13. Leakage Checks
+
+## 14. Temporal Data Splitting
+
+## 15. Rolling Window Construction
+
+## 16. Regime Construction
+
+## 17. Portfolio Construction
+
+## 18. Sharpe Objective
+
+## 19. DLinear Baseline
+
+## 20. LSTM
+
+## 21. Mamba
+
+## 22. PatchTST
+
+## 23. Common Training Framework
+
+## 24. Backtesting Framework
+
+## 25. Risk Metrics
+
+## 26. Regime Metrics
+
+## 27. Statistical Testing
+
+## 28. Complexity Analysis
+
+## 29. Training Instructions
+
+## 30. Results Template
+
+## 31. Expected Analysis Questions
+
+## 32. Limitations
+
+## 33. Reproducibility Checklist
+
+---
+
+# 49. VISUALIZATIONS
+
+The notebook must contain code for:
+
+1. Asset price series
+2. Asset return distributions
+3. Rolling volatility
+4. Correlation matrix
+5. Cross-asset correlation heatmap
+6. Drawdown curves
+7. Regime timeline
+8. Regime duration distribution
+9. Model architecture comparison
+10. Training loss curves
+11. Cumulative strategy returns
+12. Drawdown comparison
+13. Rolling Sharpe
+14. Sharpe-by-model bar chart
+15. Sharpe-by-regime heatmap
+16. Sortino-by-regime heatmap
+17. Worst-regime performance
+18. Model ranking by regime
+19. Predictive metric vs Sharpe scatter plot
+20. Complexity vs Sharpe scatter plot
+21. Turnover comparison
+22. Transaction-cost sensitivity
+23. Seed robustness visualization
+
+All charts must be saved at publication/report quality.
+
+---
+
+# 50. REPORT-READY FIGURES
+
+Save figures with filenames:
+
+01_asset_prices.png
+02_return_distribution.png
+03_rolling_volatility.png
+04_correlation_matrix.png
+05_regime_timeline.png
+06_regime_duration.png
+07_model_architectures.png
+08_cumulative_returns.png
+09_drawdowns.png
+10_rolling_sharpe.png
+11_model_sharpe.png
+12_sharpe_by_regime.png
+13_sortino_by_regime.png
+14_model_ranking_by_regime.png
+15_predictive_vs_sharpe.png
+16_complexity_vs_sharpe.png
+17_turnover_comparison.png
+18_transaction_cost_sensitivity.png
+19_seed_robustness.png
+
+---
+
+# 51. FINAL RESULTS TABLES
+
+Generate code for:
+
+model_summary.csv
+
+columns:
+
+model
+parameters
+training_time
+inference_time
+
+overall_performance.csv
+
+columns:
+
+model
+annual_return
+volatility
+sharpe
+sortino
+calmar
+max_drawdown
+turnover
+
+regime_performance.csv
+
+columns:
+
+model
+regime
+annual_return
+volatility
+sharpe
+sortino
+max_drawdown
+turnover
+
+seed_robustness.csv
+
+columns:
+
+model
+seed
+sharpe
+sortino
+max_drawdown
+
+transaction_cost_sensitivity.csv
+
+columns:
+
+model
+cost_bps
+sharpe
+annual_return
+max_drawdown
+
+---
+
+# 52. STATISTICAL TESTING
+
+Where computationally feasible, implement statistical comparisons.
+
+Possible methods:
+
+* bootstrap confidence intervals
+* paired bootstrap of daily strategy returns
+* block bootstrap for time-series dependence
+* model difference analysis
+
+Do NOT blindly use ordinary i.i.d. tests on autocorrelated financial returns.
+
+Prefer block bootstrap where possible.
+
+The point is not statistical sophistication for its own sake.
+
+The point is to avoid claiming that a tiny Sharpe difference is meaningful without uncertainty analysis.
+
+---
+
+# 53. MULTIPLE-SEED ROBUSTNESS
+
+Do not report only the single best random seed.
+
+After the project is executed later, report:
+
+mean
+std
+median
+min
+max
+
+across seeds.
+
+---
+
+# 54. BACKTESTING RULES
+
+The backtester must enforce:
+
+* positions at t use data available at t
+* returns are realized at t+1
+* no future information
+* transaction costs applied based on position change
+* no look-ahead volatility estimate
+* no future scaling statistics
+
+Include assertions.
+
+If an impossible temporal alignment occurs, raise an error.
+
+---
+
+# 55. PORTFOLIO CONSTRAINTS
+
+Make configurable:
+
+max leverage
+target volatility
+long/short allowed
+maximum per-asset weight
+number of assets
+
+Default:
+
+long/short permitted
+
+but allow long-only as a sensitivity test.
+
+---
+
+# 56. REGIME ROBUSTNESS VISUAL
+
+Create a heatmap:
+
+Rows = models
+
+Columns = regimes
+
+Cells = Sharpe ratio
+
+This should become one of the central figures of the paper/presentation.
+
+---
+
+# 57. MAIN RESEARCH RESULT
+
+The ideal final analysis should be able to answer:
+
+### Overall winner
+
+Which architecture has the best aggregate Sharpe?
+
+### Crisis winner
+
+Which architecture has the best Sharpe in high-volatility/stress conditions?
+
+### Stability winner
+
+Which architecture has the smallest degradation from normal to stress regime?
+
+### Efficiency winner
+
+Which architecture delivers the best Sharpe relative to parameter count/training time?
+
+### Predictive/economic disagreement
+
+Does the model with the best forecasting score also have the highest Sharpe?
+
+---
+
+# 58. IMPORTANT INTERPRETATION RULE
+
+The agent must never write:
+
+“Mamba is more robust.”
+
+until the experiment actually demonstrates this.
+
+Instead write:
+
+“We hypothesize that…”
+
+before results.
+
+After execution write:
+
+“The experiment indicates…”
+
+only when supported by the results.
+
+---
+
+# 59. DLINEAR BASE MODEL DETAIL
+
+Implement DLinear first as the base model.
+
+Create:
+
+src/models/dlinear.py
+
+The model should:
+
+1. accept shape [batch, lookback, features]
+2. optionally decompose trend and residual
+3. apply linear temporal mappings
+4. combine representations
+5. generate asset-wise signals
+6. apply tanh
+
+Return:
+
+[batch, assets]
+
+The DLinear implementation should be simple enough that Member 1 can explain every line.
+
+---
+
+# 60. COMMON MODEL INTERFACE
+
+Every model must implement a common interface.
+
+Example:
+
+class TradingSignalModel(nn.Module):
+
+```
+def forward(self, x):
+    ...
+```
+
+Output shape:
+
+[batch, num_assets]
+
+Output range:
+
+[-1, 1]
+
+Provide:
+
+get_config()
+count_parameters()
+
+This ensures all models can be trained by the same trainer.
+
+---
+
+# 61. BASE TRAINER
+
+Create:
+
+src/training/trainer.py
+
+It should accept:
+
+model
+loss_function
+optimizer
+dataloader
+validation_loader
+config
+
+and support:
+
+* training
+* validation
+* early stopping
+* checkpointing
+* history logging
+
+It must NOT contain model-specific assumptions.
+
+---
+
+# 62. BACKTESTER
+
+Create a separate:
+
+src/backtest/backtester.py
+
+Do NOT place portfolio accounting inside model code.
+
+This separation is essential.
+
+Architecture predicts.
+
+Portfolio layer converts predictions to positions.
+
+Backtester calculates returns.
+
+---
+
+# 63. CONFIGURATION
+
+All important parameters must be configurable.
+
+Do NOT hard-code:
+
+* lookback
+* learning rate
+* batch size
+* model dimensions
+* target volatility
+* leverage cap
+* regime thresholds
+* transaction costs
+* random seeds
+* dates
+
+Store them in YAML configuration files.
+
+---
+
+# 64. ENVIRONMENT
+
+Create a Python 3.11 virtual environment configuration.
+
+requirements.txt should include only required packages.
+
+Potential dependencies:
+
+torch
 numpy
 pandas
 scikit-learn
 matplotlib
 seaborn
-networkx
+pyyaml
 jupyter
 ipykernel
-Add other packages only when genuinely required.
-After finalizing imports, compare all third-party imports against requirements.txt.
-There must be no missing dependencies.
-There must be no unnecessary dependencies.
-42. PROJECT STRUCTURE
+statsmodels
+networkx
+yfinance if actually required
+mamba-ssm if actually required
+
+IMPORTANT:
+
+Verify package compatibility.
+
+Do not blindly install the latest version of everything.
+
+Pin versions or provide compatible minimum versions where appropriate.
+
+---
+
+# 65. MAMBA DEPENDENCY SAFETY
+
+Mamba dependencies can be hardware/platform sensitive.
+
+Therefore:
+
+* isolate Mamba in its own module
+* document installation requirements
+* provide a clear error message if unavailable
+* do not silently substitute another model
+
+The project code should remain importable even if Mamba is not installed.
+
+Use lazy imports for Mamba where practical.
+
+---
+
+# 66. TESTS
+
+Create tests for:
+
+1. data loading
+2. rolling window creation
+3. leakage detection
+4. feature shapes
+5. DLinear output
+6. LSTM output
+7. Mamba output interface
+8. PatchTST output
+9. Sharpe loss
+10. volatility targeting
+11. transaction costs
+12. regime labels
+13. backtest alignment
+
+Use synthetic data for unit tests.
+
+Do not use synthetic results as research results.
+
+---
+
+# 67. NOTEBOOK DRY RUN
+
+The notebook may use a tiny synthetic dataset to verify:
+
+* tensor shapes
+* model forward passes
+* loss calculation
+* portfolio calculations
+
+Clearly label synthetic demonstrations:
+
+“CODE VALIDATION ONLY — NOT RESEARCH RESULTS”
+
+Never mix synthetic outputs with actual benchmark tables.
+
+---
+
+# 68. DOCUMENTATION
+
 Create:
-harry-potter-ner-dl/
-├── README.md
-├── requirements.txt
-├── environment.yml
-├── .gitignore
-│
-├── notebooks/
-│ └── harry_potter_ner_relation_extraction.ipynb
-│
-├── src/
-│ ├── init.py
-│ ├── data_loader.py
-│ ├── preprocessing.py
-│ ├── bio_utils.py
-│ ├── models.py
-│ ├── training.py
-│ ├── evaluation.py
-│ ├── relation_extraction.py
-│ ├── visualization.py
-│ └── reproducibility.py
-│
-├── data/
-│ └── README.md
-│
-├── results/
-│ ├── figures/
-│ ├── tables/
-│ ├── metrics/
-│ ├── predictions/
-│ └── models/
-│
-└── docs/
-└── methodology_notes.md
-43. NOTEBOOK REQUIREMENTS
-Create exactly one main integrated notebook:
-notebooks/harry_potter_ner_relation_extraction.ipynb
-The notebook must execute from beginning to end.
-It must not require undocumented manual changes.
-It must not contain:
-TODO cells
-placeholder results
-fake metrics
-undefined variables
-missing imports
-unexplained magic constants
-cells dependent on execution order that is not obvious
-Restart the kernel and run all cells from top to bottom before declaring the notebook complete.
-44. NOTEBOOK SECTION STRUCTURE
-The notebook must contain these Markdown sections:
+
+docs/methodology.md
+
+explaining:
+
+* data
+* features
+* target
+* architectures
+* Sharpe objective
+* portfolio construction
+* regime detection
+* backtesting
+* evaluation
+
+Create:
+
+docs/research_questions.md
+
+Create:
+
+docs/reproducibility.md
+
+---
+
+# 69. README
+
+README must contain:
+
 Project Title
+
 Abstract
-Research Motivation
+
+Research Gap
+
 Research Questions
+
 Objectives
-Dataset Description
-Environment and Reproducibility
-Imports
-Dataset Loading
-Dataset Inspection
-Data Quality Checks
-Entity Analysis
-Relation Analysis
-BIO Conversion
-Dataset Splitting
-Tokenization
-Sequence Preparation
-Model Architecture 1 — MLP
-Model Architecture 2 — SimpleRNN
-Model Architecture 3 — BiLSTM
-Model Architecture 4 — BiLSTM + Attention
-Training Protocol
-Model Training
-Training Curves
-Token-Level Evaluation
-Entity-Level Evaluation
-Confusion Matrices
-Error Analysis
-Attention Visualization
-Relation Extraction
-Relation Evaluation
-Knowledge Graph Visualization
-Overall Model Comparison
-Discussion
-Limitations
-Conclusion
-Reproducibility Summary
-45. MODEL SUMMARY OUTPUT
-For every model print a Keras model summary.
-Save parameter counts.
-Create a table:
-Model
-Trainable Parameters
-Non-Trainable Parameters
-Total Parameters
-This will be used to discuss the trade-off between model complexity and performance.
-46. TRAINING-TIME MEASUREMENT
-Measure actual training time for every model.
-Do not estimate.
-Store:
-start timestamp
-end timestamp
-elapsed seconds
-Report training time in the comparison table.
-Explain that training time depends on hardware and environment.
-Do not use training time as an absolute universal efficiency claim.
-47. RESOURCE DETECTION
-At startup:
-detect CPU
-detect available GPU(s)
-print TensorFlow device information
-The code must remain CPU-compatible.
-Do not require CUDA-specific packages.
-If a GPU is available, use it automatically where TensorFlow supports it.
-48. ERROR HANDLING
-Examples:
-If dataset is missing:
-raise FileNotFoundError with clear instructions.
-If file format differs:
-print detected structure and adapt.
-If annotations cannot be converted cleanly:
-report the conflicting records.
-If class distribution is too sparse:
-reduce the selected entity classes only according to a documented rule.
-If RE cannot be evaluated reliably:
-continue with NER and document the limitation.
-Never silently produce a fake result.
-49. TESTING REQUIREMENTS
-Before finalizing, test:
-Data loader test
-Can the loader read the dataset and return normalized examples?
-BIO conversion test
-Create several small hand-checkable unit cases using synthetic toy examples.
-Do NOT use fabricated Harry Potter data as though it came from the dataset.
-Use synthetic examples strictly to test BIO logic.
-Model shape test
-Verify each model returns:
-(batch_size, sequence_length, number_of_labels)
-Evaluation test
-Verify that padding tokens are excluded appropriately.
-Attention test
-Verify that attention output dimensions are correct.
-RE test
-Verify relation classifier input/output shapes.
-50. UNIT TESTS
-Create lightweight tests where useful.
-Minimum:
-dataset parsing test
-BIO conversion test
-model output shape test
-evaluation masking test
-Do not create an unnecessarily large software-testing framework.
-51. SAVE RESULTS
-Save:
-results/metrics/ner_model_comparison.csv
-results/metrics/entity_level_metrics.csv
-results/metrics/relation_metrics.csv
-results/predictions/test_predictions.csv
-results/tables/class_distribution.csv
-results/tables/relation_distribution.csv
-results/tables/model_parameters.csv
-results/figures/
-All output files must contain real generated results.
-52. CONFUSION MATRIX
-Create confusion matrices for the NER labels.
-Because there can be many BIO classes, ensure the axis labels remain readable.
-Also create an entity-type confusion representation if useful.
-Do not make an unreadable figure simply to satisfy the requirement.
-53. ERROR EXAMPLES FOR REPORT
-Automatically export a concise error-analysis CSV:
-results/predictions/ner_error_examples.csv
-Columns:
-text
-token
-gold_label
-predicted_label
-example_id
-Also save selected full-paragraph examples for human discussion.
-54. ATTENTION OUTPUT
-Save selected attention examples to:
-results/figures/attention/
-Each example should include:
-input tokens
-gold labels
-predicted labels
-attention weights
-Use readable visualizations.
-55. RELATION GRAPH OUTPUT
-Create:
-results/figures/relationship_graph.png
-The graph must be generated from actual relations.
-Use:
-nodes = entities
-edges = relations
-Use a readable subset.
-If many relation types exist, use edge labels.
-Make a second optional graph showing one selected relation family if the full graph is too dense.
-56. REPORT-QUALITY TABLES
-All important tables must be exportable to CSV and optionally LaTeX.
-Create:
-model_comparison.csv
-entity_class_metrics.csv
-relation_metrics.csv
-class_distribution.csv
-parameter_comparison.csv
-The notebook should display them in clean pandas tables.
-57. REPORT DISCUSSION LOGIC
-The final notebook discussion should answer:
-Which model achieved the best token-level performance?
-Which model achieved the best entity-level F1?
-Did recurrent models improve over the MLP?
-Did bidirectionality help?
-Did attention help?
-Which entity type was easiest to detect?
-Which entity type was hardest?
-What were the major sources of errors?
-What is the cost of larger models in parameter count and training time?
-Can relation extraction produce a useful knowledge graph?
-What are the limitations of the dataset and experimental design?
-Do not automatically claim that the most complex model is best.
-Interpret the observed results.
-58. LIMITATIONS
-The notebook/report must include genuine limitations.
-Potential areas to investigate:
-fictional-domain dataset
-class imbalance
-limited annotation coverage
-ambiguous entity surface forms
-tokenization limitations
-sequence-length truncation
-limited relation examples
-possible source-text duplication
-generalization beyond the Harry Potter domain
-computational constraints
-Only include limitations that actually apply.
-59. NO DATA FABRICATION
-This rule overrides everything else.
-Never write:
-“The model achieved 97.3% F1”
-unless the executed code actually produced 97.3%.
-Never write:
-“The dataset contains 50,000 examples”
-unless the code verified that number.
-Never create attractive sample metrics just to populate a table.
-Never fabricate a confusion matrix.
-Never fabricate attention weights.
-Never fabricate training time.
-Never fabricate literature results.
-60. FINAL AUTOMATED QUALITY CHECK
-Before declaring the project complete, execute all relevant code.
-Confirm:
-[ ] Dataset is accessible
-[ ] Dataset structure is documented
-[ ] Entity annotations are correctly parsed
-[ ] Relation annotations are correctly parsed
-[ ] BIO conversion works
-[ ] Train/validation/test split works
-[ ] No leakage is detected
-[ ] Tokenizer fitted only on training data
-[ ] Padding is handled correctly
-[ ] MLP trains
-[ ] SimpleRNN trains
-[ ] BiLSTM trains
-[ ] BiLSTM+Attention trains
-[ ] All models produce sequence-level outputs
-[ ] Token metrics are generated
-[ ] Entity-level metrics are generated
-[ ] Error analysis is generated
-[ ] Attention visualization works
-[ ] RE component works if supported by data
-[ ] Knowledge graph visualization works
-[ ] Final comparison table is generated
-[ ] All figures are saved
-[ ] All metrics are saved
-[ ] requirements.txt matches imports
-[ ] Notebook runs from start to finish
-[ ] README is complete
-[ ] Git repository structure is clean
-[ ] No raw copyrighted source material is unnecessarily committed
-[ ] No fabricated results exist
-[ ] No fabricated citations exist
-61. GITHUB README
-Generate a professional README containing:
-Project Title
-Overview
-Research Questions
-Objectives
+
 Dataset
-Dataset Citation
-Environment Setup
-Virtual Environment Setup
-Running the Notebook
+
+Dataset Caveats
+
 Models
-Evaluation Metrics
-Results
-Visualization Examples
+
+Experimental Protocol
+
+Metrics
+
+Regime Analysis
+
+Installation
+
+Virtual Environment Setup
+
+Notebook Instructions
+
 Repository Structure
+
 Reproducibility
-Limitations
-Academic Integrity / AI Assistance Disclosure
+
+Academic Integrity
+
 References
-The README must not contain made-up result numbers.
-62. CONTRIBUTION STRUCTURE FOR FOUR TEAM MEMBERS
-Design the codebase so each member has a clearly defensible contribution.
-Suggested division:
-Member 1
-Data acquisition, data cleaning, BIO conversion, exploratory analysis.
-Member 2
-MLP and SimpleRNN implementation.
-Member 3
-BiLSTM implementation and training/evaluation.
-Member 4
-BiLSTM + Attention, interpretation, relation extraction, and knowledge graph.
-All members should also contribute to:
-testing
-evaluation
-report
-presentation
-Do not make the contribution split artificially exclusive.
-63. VIVA PREPARATION
-At the end of the notebook or README, generate a concise technical summary for each model.
-For every model explain:
-input
-embedding
-hidden representation
-sequence handling
-output
-reason for architecture
-main advantage
-main limitation
-Also explain:
-BIO tagging
-padding mask
-macro F1
-exact entity F1
-attention
-relation extraction
-knowledge graphs
-The explanations must be technically correct and understandable to an undergraduate student.
-64. PRESENTATION-READY VISUAL STORY
-The notebook should generate figures suitable for a 10–12 minute presentation.
-Recommended presentation figures:
-Dataset/entity distribution
-NER pipeline diagram or schematic
-Four-model architecture comparison
-Training curves
-Model performance comparison
-Per-entity F1
-Attention visualization
-Harry Potter relationship graph
-Example prediction/error analysis
-Do not use a huge number of visually redundant plots.
-Prefer a small number of strong figures.
-65. FINAL RESEARCH NARRATIVE
-The resulting project should tell this story:
-“Given annotated Harry Potter text, we investigated whether progressively stronger Deep Learning architectures could improve named entity recognition. We began with a feed-forward neural baseline, introduced recurrence with SimpleRNN, added bidirectional contextual modelling with BiLSTM, and finally incorporated attention. We evaluated the models using both token-level and entity-level metrics and examined errors and attention behaviour. We additionally explored whether the dataset's relation annotations could be transformed into a neural relation-extraction task and a visual knowledge graph.”
-Do not claim that this narrative is supported by results until the experiment is completed.
-66. FINAL AGENT RESPONSE
-After implementation and testing, return a concise technical completion report containing:
-Dataset files detected
-Dataset size
-Entity classes
-Relation classes
-Final BIO label count
-Train/validation/test sizes
-Sequence length
-Vocabulary size
-Four model architectures
-Parameter counts
-Training times
-Token-level metrics
-Entity-level metrics
-Best model
-Relation extraction results, if available
-Generated knowledge-graph output
-Important error-analysis findings
-Generated files
-Environment installation instructions
-Any unresolved issues
-Do not state that the project is complete unless the notebook has actually been executed successfully from beginning to end.
-67. FINAL RULE
-Prioritize correctness and reproducibility over impressive-looking output.
-A smaller model with trustworthy results is better than a larger model with fabricated or poorly controlled results.
-The final project must be something the four students can understand, run, defend, explain, and reproduce during the ICT 4442 viva.
+
+---
+
+# 70. ACADEMIC INTEGRITY
+
+Do not fabricate papers.
+
+Do not fabricate results.
+
+Do not fabricate statistics.
+
+Do not fabricate data.
+
+Do not fabricate backtest outputs.
+
+All AI assistance must be disclosed according to the ICT 4442 rules.
+
+The code should be structured so the students can understand and defend it.
+
+---
+
+# 71. REQUIRED LITERATURE BASE
+
+The research bibliography should include the following areas:
+
+1. Saly-Kaufmann et al. 2026 financial DL benchmark
+2. DLinear
+3. LSTM
+4. Mamba / selective state-space models
+5. PatchTST
+6. Sharpe-ratio optimization / differentiable trading objectives
+7. volatility targeting
+8. time-series momentum
+9. regime detection
+10. transaction-cost-aware backtesting
+11. statistical evaluation of financial strategies
+12. financial time-series stylized facts
+
+Use genuine, verifiable scholarly sources.
+
+Verify DOI/title/author information.
+
+---
+
+# 72. IMPORTANT REFERENCE
+
+The agent should inspect and understand:
+
+Saly-Kaufmann, Adir; Wood, Kieran; Peter-Calliess, Jan; Zohren, Stefan.
+
+“Deep Learning for Financial Time Series: A Large-Scale Benchmark of Risk-Adjusted Performance.”
+
+arXiv:2603.01820, submitted March 2, 2026.
+
+The paper's methodology includes a unified trading-signal pipeline, volatility targeting, Sharpe-ratio optimization, and evaluation across returns, risk, robustness and computation.
+
+Do not present its conclusions as your own.
+
+Cite it as prior work.
+
+---
+
+# 73. PRIOR-WORK CODE
+
+The authors have also released a GitHub repository associated with the benchmark:
+
+https://github.com/Adir7SK/deep_fin_benchmark
+
+The agent may inspect this repository for methodological understanding.
+
+IMPORTANT:
+
+Do not copy the repository wholesale.
+
+Do not reproduce code verbatim.
+
+Use it as a reference for:
+
+* architecture definitions
+* experimental methodology
+* backtesting concepts
+* evaluation ideas
+
+The student project must implement its own clean architecture and pipeline.
+
+---
+
+# 74. RESEARCH NOVELTY STATEMENT
+
+The project should eventually be described as:
+
+“This study performs an independent, controlled benchmark of four architectural families for financial time-series signal generation on a multi-market dataset, with particular emphasis on the stability of risk-adjusted performance across market regimes. Rather than evaluating architectures only by prediction error or aggregate Sharpe ratio, the study examines regime-specific Sharpe, downside risk, drawdown, turnover, computational cost, and predictive-economic alignment.”
+
+This is the intended contribution.
+
+---
+
+# 75. DO NOT OVERCLAIM
+
+Do not claim:
+
+* new model
+* new financial theory
+* state-of-the-art trading system
+* guaranteed profitable strategy
+* real-world deployability
+
+This is an empirical benchmark study.
+
+---
+
+# 76. FINAL QUALITY CONTROL
+
+Before stopping, perform:
+
+## Static checks
+
+* syntax compile
+* import graph inspection
+* configuration validation
+* test discovery
+
+## Structural checks
+
+* every required file exists
+* notebook exists
+* requirements exists
+* README exists
+* model interfaces are consistent
+
+## Methodological checks
+
+* chronological split
+* no scaler leakage
+* no target leakage
+* no future regime information
+* transaction costs aligned
+* positions lagged correctly
+* test set untouched
+
+## Code checks
+
+* no TODO placeholders
+* no fake results
+* no hardcoded experimental metrics
+* no undefined variables
+* no dead imports where avoidable
+
+---
+
+# 77. DO NOT RUN THE EXPENSIVE TRAINING
+
+The agent must NOT:
+
+* train DLinear for full epochs
+* train LSTM for full epochs
+* train Mamba for full epochs
+* train PatchTST for full epochs
+* perform full hyperparameter searches
+* generate fake benchmark metrics
+
+The requested deliverable is the complete implementation infrastructure.
+
+---
+
+# 78. FINAL DELIVERABLES
+
+The agent must deliver:
+
+1. Complete repository
+2. Complete preprocessing pipeline
+3. Dataset adapter
+4. Feature engineering pipeline
+5. Regime detection module
+6. DLinear implementation
+7. LSTM implementation
+8. Mamba implementation
+9. PatchTST implementation
+10. Sharpe loss
+11. Portfolio construction
+12. Backtester
+13. Risk metrics
+14. Statistical testing infrastructure
+15. Configuration files
+16. Unit tests
+17. requirements.txt
+18. environment.yml
+19. README.md
+20. Methodology documentation
+21. Complete Jupyter notebook
+22. Report-ready visualization code
+23. Report-ready results tables
+24. Reproducibility instructions
+
+---
+
+# 79. FINAL AGENT SUMMARY
+
+At completion, respond with:
+
+## Dataset
+
+* exact files discovered
+* date range
+* assets
+* features
+* missingness
+* license information actually verified
+
+## Research design
+
+* research gap
+* research questions
+* hypotheses
+* experimental protocol
+
+## Models
+
+* DLinear
+* LSTM
+* Mamba
+* PatchTST
+
+## Pipeline
+
+* preprocessing
+* leakage controls
+* splitting
+* feature engineering
+* regime detection
+* portfolio construction
+* Sharpe optimization
+* backtesting
+
+## Repository
+
+* file tree
+* key files
+
+## Environment
+
+* Python version
+* dependency requirements
+* virtual environment setup
+
+## Notebook
+
+* sections
+* training cells
+* evaluation cells
+* figures
+
+## Important limitations
+
+* data quality
+* survivorship bias where relevant
+* licensing
+* computational requirements
+* limitations of the regime definition
+
+Do not report performance results because the models have not been trained.
+
+# FINAL RULE
+
+Build the research infrastructure as though it will later be used for a real reproducible experiment.
+
+Do not optimize for appearance at the expense of methodological correctness.
+
+Do not fabricate a single scientific result.
