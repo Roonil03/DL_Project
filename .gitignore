@@ -2,11 +2,10 @@
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
-data/*.json
-data/*.jsonl
 data/*.csv
-data/*.zip
-results/models/*.h5
-results/models/*.keras
-results/models/*.keras
+data/*.parquet
+data/*.json
+results/models/*.pt
+results/models/*.pth
 results/predictions/*.csv
+results/backtests/*.csv

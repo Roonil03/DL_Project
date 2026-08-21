@@ -1,9 +1,12 @@
-tensorflow
+torch
 numpy
 pandas
 scikit-learn
 matplotlib
 seaborn
-networkx
+pyyaml
 jupyter
 ipykernel
+statsmodels
+networkx
+yfinance

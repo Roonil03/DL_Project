@@ -1,0 +1,4 @@
+target_volatility: 0.10
+max_leverage: 3.0
+transaction_costs_bps: [0, 1, 5, 10, 20]
+allow_short: true

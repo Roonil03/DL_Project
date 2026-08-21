@@ -1,0 +1,6 @@
+learning_rate: 0.001
+batch_size: 64
+epochs: 100
+early_stopping_patience: 10
+seeds: [42, 52, 62, 72, 82]
+loss_alpha: 1.0 # 1.0 for pure Sharpe, 0.0 for pure MSE, or blend

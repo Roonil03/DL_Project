@@ -1,17 +1,23 @@
-name: hp-ner-dl
+name: fin-dl-benchmark
 channels:
+  - pytorch
   - conda-forge
   - defaults
 dependencies:
   - python=3.11
   - pip
-  - jupyter
-  - ipykernel
+  - pytorch
   - numpy
   - pandas
   - scikit-learn
   - matplotlib
   - seaborn
+  - pyyaml
+  - jupyter
+  - ipykernel
+  - statsmodels
   - networkx
   - pip:
-    - tensorflow
+    - yfinance
+    # Optional mamba installation
+    # - mamba-ssm

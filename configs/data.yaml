@@ -1,0 +1,10 @@
+dataset: "global_indian"
+lookback: 20
+features:
+  - "daily_return"
+  - "rolling_volatility_20"
+  - "momentum_20"
+split:
+  train: "2010-01-01"
+  val: "2018-01-01"
+  test: "2020-01-01"

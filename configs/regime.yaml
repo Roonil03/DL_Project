@@ -1,0 +1,3 @@
+volatility_window: 60
+trend_window: 120
+stress_percentile: 0.95

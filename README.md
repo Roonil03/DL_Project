@@ -1,43 +1,69 @@
-# The Magic Behind the Text: A Deep Learning Comparison for Named Entity Recognition and Relation Extraction in the Harry Potter Universe
+# Benchmarking Deep Learning Architectures for Financial Time-Series Prediction and Risk Optimization under Market Regimes
 
-## Overview
-This repository contains a Deep Learning project implementing Named Entity Recognition (NER) and Relation Extraction (RE) for the Harry Potter universe.
+## Abstract
+This study performs an independent, controlled benchmark of four architectural families for financial time-series signal generation on a multi-market dataset, with particular emphasis on the stability of risk-adjusted performance across market regimes. Rather than evaluating architectures only by prediction error or aggregate Sharpe ratio, the study examines regime-specific Sharpe, downside risk, drawdown, turnover, computational cost, and predictive-economic alignment.
+
+## Research Gap
+Existing recent benchmarks, including Saly-Kaufmann et al. (2026), are based on particular asset universes and backtesting protocols. It remains valuable to determine whether conclusions about architectural robustness generalize to an independent publicly available multi-market dataset. Furthermore, aggregate Sharpe ratio can conceal differences in performance across market regimes (low/high volatility, bull/bear, crisis).
 
 ## Research Questions
-- **RQ1**: How effectively can Deep Learning architectures identify named entities in Harry Potter text?
-- **RQ2**: How does sequential modelling affect NER performance compared with a feed-forward token-classification baseline?
-- **RQ3**: Does bidirectional recurrent modelling improve entity recognition compared with a unidirectional recurrent architecture?
-- **RQ4**: Does incorporating attention improve contextual token classification and entity-level recognition?
-- **RQ5** (Optional): Can the annotated entity and relation information be used to construct a meaningful Harry Potter knowledge graph?
+1. Which architecture has the best aggregate Sharpe?
+2. Which architecture has the best Sharpe in high-volatility/stress conditions?
+3. Which architecture has the smallest degradation from normal to stress regime?
+4. Which architecture delivers the best Sharpe relative to parameter count/training time?
+5. Does the model with the best forecasting score also have the highest Sharpe?
 
 ## Objectives
-- To develop a Deep Learning-based Named Entity Recognition system for identifying characters, houses, magical items, spells, and locations in Harry Potter text.
-- To compare feed-forward, recurrent, bidirectional LSTM, and attention-enhanced recurrent architectures using a common experimental protocol.
-- To evaluate whether sequential context and attention improve token-level and entity-level NER performance.
-- To investigate the feasibility of relation extraction and knowledge-graph construction from the annotated fictional text.
+- Build a generic PyTorch framework to train, backtest, and evaluate deep learning architectures under a Sharpe optimization objective.
+- Implement DLinear, LSTM, PatchTST, and Mamba models.
+- Apply volatility targeting and transaction cost modelling.
+- Detect market regimes and evaluate robustness.
 
 ## Dataset
-Kaggle dataset: Harry Potter (NER + RE)
-URL: [https://www.kaggle.com/datasets/mkdsps/harry-potter-ner-re](https://www.kaggle.com/datasets/mkdsps/harry-potter-ner-re)
+- **Primary Dataset**: Global & Indian Financial Markets Dataset 2025 (Kaggle)
+- **Dataset Caveats**: Financial market data is prone to look-ahead bias, non-stationarity, and survivorship bias (especially in indices). The codebase attempts to strictly prevent chronological leakage.
 
-## Environment Setup
+## Models
+1. **DLinear**: Simple learned temporal mapping baseline.
+2. **LSTM**: Recurrent temporal context baseline.
+3. **Mamba (State Space)**: Selective state space representation.
+4. **PatchTST**: Attention-based temporal patching.
+
+## Experimental Protocol
+- 60% Train, 20% Validation, 20% Test (Chronological splits).
+- Inputs are historical lookback windows (e.g., 20 days).
+- Models predict a bounded directional signal \([-1, 1]\).
+- Positions scaled by ex-ante volatility (Target volatility: 10%).
+- Training objective: Negative Annualized Sharpe Ratio.
+
+## Metrics
+- **Economic**: Annualized Sharpe, Sortino, Max Drawdown, Annualized Return.
+- **Trading**: Turnover, average leverage.
+- **Predictive**: Directional accuracy, MSE, Correlation.
+
+## Regime Analysis
+- Volatility × Trend Regime classification based purely on available historical data at time `t`.
+
+## Installation
 ### Virtual Environment Setup
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # Or .venv\Scripts\activate on Windows
 pip install --upgrade pip
 pip install -r requirements.txt
-python -m ipykernel install --user --name hp-ner-dl --display-name "Harry Potter NER DL"
+python -m ipykernel install --user --name fin-dl-benchmark --display-name "Financial DL Benchmark"
 ```
 
-## Running the Notebook
-Open the `notebooks/harry_potter_ner_relation_extraction.ipynb` file in Jupyter Notebook or JupyterLab, select the "Harry Potter NER DL" kernel, and run all cells sequentially.
+## Notebook Instructions
+Run `notebooks/financial_time_series_benchmark.ipynb`. Full training is expensive and is not executed automatically. The notebook validates tensor shapes and sets up the full experimental structure.
 
-## Models
-1. **MLP Token Classifier**: Feed-forward baseline.
-2. **Simple RNN**: Baseline sequential model.
-3. **Bidirectional LSTM**: Advanced sequential context model.
-4. **Bidirectional LSTM + Attention**: Contextual token model with self-attention.
+## Reproducibility
+- Chronological train/val/test constraints are enforced.
+- Configurable settings via `configs/`.
+- Tested across multiple random seeds `[42, 52, 62, 72, 82]`.
 
-## Academic Integrity / AI Assistance Disclosure
+## Academic Integrity
 *Note: External AI assistance may have been used during the development of this codebase, subject to the university/course policy.*
+
+## References
+1. Saly-Kaufmann, A., Wood, K., Peter-Calliess, J., & Zohren, S. (2026). Deep Learning for Financial Time Series: A Large-Scale Benchmark of Risk-Adjusted Performance. arXiv:2603.01820.
