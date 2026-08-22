@@ -11,49 +11,63 @@ class TradingSignalModel(nn.Module):
 
 class DLinear(TradingSignalModel):
     """
-    DLinear Baseline Model for multivariate time series.
-    Uses moving average to decompose the sequence into trend and remainder components.
+    DLinear Baseline Model for multivariate financial time series.
+    Decomposes sequence into Trend and Seasonal/Remainder components via moving average,
+    applies temporal linear projections, and projects to asset signals.
     """
-    def __init__(self, lookback, num_assets, trend_window=20):
+    def __init__(self, lookback: int, num_features: int = 10, num_assets: int = None, trend_window: int = 5):
         super(DLinear, self).__init__()
         self.lookback = lookback
-        self.num_assets = num_assets
-        self.trend_window = trend_window
+        if num_assets is None:
+            self.num_features = num_features
+            self.num_assets = num_features
+        else:
+            self.num_features = num_features
+            self.num_assets = num_assets
+            
+        self.trend_window = max(1, min(trend_window, lookback))
         
-        # Linear layer mapping the temporal dimension (lookback) down to 1 
-        # for both trend and remainder
+        # Temporal Linear layers mapping lookback dimension to 1
         self.Linear_Trend = nn.Linear(self.lookback, 1)
         self.Linear_Remainder = nn.Linear(self.lookback, 1)
         
-        # Projection to signal per asset
-        self.proj = nn.Linear(num_assets, num_assets)
+        # Cross-feature projection to asset signals
+        self.proj = nn.Linear(self.num_features, self.num_assets)
 
     def forward(self, x):
         """
-        x: [batch, lookback, num_assets] (simplified feature space for DLinear)
+        x: [batch, lookback, num_features]
         """
-        # Trend Decomposition
-        # Using a simple average pooling for moving average
-        kernel_size = self.trend_window
-        padding = kernel_size // 2
+        batch_size, seq_len, n_feat = x.shape
         
-        # Handle padding for valid convolution/pooling
-        # A proper implementation handles edge cases carefully.
-        # For simplicity in this benchmark, we approximate:
-        trend = nn.functional.avg_pool1d(x.transpose(1, 2), kernel_size=kernel_size, stride=1, padding=padding)
-        trend = trend[:, :, :self.lookback].transpose(1, 2)
+        # Transpose to [batch, num_features, lookback] for 1D pooling
+        x_trans = x.transpose(1, 2)
         
-        remainder = x - trend
+        # Moving average trend decomposition with padding
+        padding = (self.trend_window - 1) // 2
+        trend = nn.functional.avg_pool1d(
+            x_trans, 
+            kernel_size=self.trend_window, 
+            stride=1, 
+            padding=padding, 
+            count_include_pad=False
+        )
+        # Ensure length matches lookback
+        if trend.shape[-1] < self.lookback:
+            trend = nn.functional.pad(trend, (0, self.lookback - trend.shape[-1]), mode='replicate')
+        elif trend.shape[-1] > self.lookback:
+            trend = trend[:, :, :self.lookback]
+            
+        remainder = x_trans - trend
         
-        # Temporal Linear mapping
-        # trend: [batch, lookback, num_assets] -> [batch, num_assets, lookback]
-        trend_out = self.Linear_Trend(trend.transpose(1, 2)).squeeze(-1) # [batch, num_assets]
-        rem_out = self.Linear_Remainder(remainder.transpose(1, 2)).squeeze(-1) # [batch, num_assets]
+        # Temporal mappings: [batch, num_features, lookback] -> [batch, num_features]
+        trend_out = self.Linear_Trend(trend).squeeze(-1)
+        rem_out = self.Linear_Remainder(remainder).squeeze(-1)
         
-        out = trend_out + rem_out
+        combined = trend_out + rem_out
         
-        # Optional cross-asset projection
-        out = self.proj(out)
+        # Project to target assets
+        out = self.proj(combined)
         
-        # Bounded signal
         return torch.tanh(out)
+

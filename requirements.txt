@@ -10,3 +10,4 @@ ipykernel
 statsmodels
 networkx
 yfinance
+tabulate
