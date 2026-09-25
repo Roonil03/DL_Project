@@ -49,7 +49,6 @@ def paired_sharpe_difference_test(returns_a: np.ndarray, returns_b: np.ndarray, 
     min_len = min(len(r_a), len(r_b))
     r_a, r_b = r_a[:min_len], r_b[:min_len]
     
-    diff = r_a - r_b
     s_a, _, _ = block_bootstrap_sharpe(r_a, num_bootstraps=100)
     s_b, _, _ = block_bootstrap_sharpe(r_b, num_bootstraps=100)
     observed_diff = s_a - s_b

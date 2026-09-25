@@ -77,9 +77,8 @@ def run_experiment():
     target_vol = config_backtest.get('target_volatility', 0.10)
     max_lev = config_backtest.get('max_leverage', 3.0)
     
-    os.makedirs('results/figures', exist_ok=True)
-    os.makedirs('results/tables', exist_ok=True)
-    os.makedirs('results/predictions', exist_ok=True)
+    for output_dir in ('results/figures', 'results/tables', 'results/predictions'):
+        os.makedirs(output_dir, exist_ok=True)
     
     # 2. Data Ingestion
     print("\n[1/7] Loading & Preparing Full Multi-Asset Dataset (2010–2025)...")

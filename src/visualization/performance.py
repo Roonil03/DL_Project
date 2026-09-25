@@ -11,6 +11,14 @@ plt.rcParams['font.sans-serif'] = 'DejaVu Sans'
 plt.rcParams['axes.edgecolor'] = '#cccccc'
 plt.rcParams['axes.linewidth'] = 0.8
 
+
+def _ensure_parent_directory(path):
+    """Create an output directory only when the path includes one."""
+    parent = os.path.dirname(os.fspath(path))
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+
 def plot_market_overview(prices: pd.DataFrame, save_path="results/figures/01_market_data_overview.png"):
     """Normalized asset price paths."""
     plt.figure(figsize=(12, 6))
@@ -22,7 +30,7 @@ def plot_market_overview(prices: pd.DataFrame, save_path="results/figures/01_mar
     plt.ylabel('Normalized Level', fontsize=11)
     plt.legend(frameon=True, facecolor='white', framealpha=0.9)
     plt.grid(True, linestyle='--', alpha=0.5)
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    _ensure_parent_directory(save_path)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -47,7 +55,7 @@ def plot_regime_classification(prices: pd.DataFrame, regimes: pd.Series, save_pa
     handles, labels = plt.gca().get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
     plt.legend(by_label.values(), by_label.keys(), loc='upper left', frameon=True, facecolor='white', framealpha=0.9)
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    _ensure_parent_directory(save_path)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -64,7 +72,7 @@ def plot_cumulative_returns(returns_dict: Dict[str, pd.Series], save_path="resul
     plt.ylabel('Growth Factor (Base = 1.0)', fontsize=11)
     plt.legend(loc='upper left', frameon=True, facecolor='white', framealpha=0.9)
     plt.grid(True, linestyle='--', alpha=0.5)
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    _ensure_parent_directory(save_path)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -82,7 +90,7 @@ def plot_drawdowns(returns_dict: Dict[str, pd.Series], save_path="results/figure
     plt.ylabel('Drawdown (%)', fontsize=11)
     plt.legend(loc='lower left', frameon=True, facecolor='white', framealpha=0.9)
     plt.grid(True, linestyle='--', alpha=0.5)
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    _ensure_parent_directory(save_path)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -93,14 +101,14 @@ def plot_sharpe_by_regime(regime_df: pd.DataFrame, save_path="results/figures/05
     plt.title('Risk-Adjusted Performance (Sharpe Ratio) by Market Regime', fontsize=13, fontweight='bold', pad=12)
     plt.ylabel('Model Architecture', fontsize=11)
     plt.xlabel('Market Regime', fontsize=11)
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    _ensure_parent_directory(save_path)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
 def plot_turnover_vs_sharpe(turnover_dict: Dict[str, float], sharpe_dict: Dict[str, float], save_path="results/figures/06_turnover_vs_sharpe.png"):
     """Scatter plot of Annualized Turnover vs Sharpe Ratio."""
     plt.figure(figsize=(8, 6))
-    for model in turnover_dict.keys():
+    for model in turnover_dict:
         t = turnover_dict[model]
         s = sharpe_dict.get(model, 0.0)
         plt.scatter(t, s, s=120, label=model)
@@ -109,7 +117,7 @@ def plot_turnover_vs_sharpe(turnover_dict: Dict[str, float], sharpe_dict: Dict[s
     plt.xlabel('Annualized Turnover', fontsize=11)
     plt.ylabel('Sharpe Ratio (Net)', fontsize=11)
     plt.grid(True, linestyle='--', alpha=0.5)
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    _ensure_parent_directory(save_path)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -125,14 +133,14 @@ def plot_transaction_cost_sensitivity(tc_results: Dict[str, Dict[int, float]], s
     plt.ylabel('Net Annualized Sharpe Ratio', fontsize=11)
     plt.legend(frameon=True, facecolor='white')
     plt.grid(True, linestyle='--', alpha=0.5)
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    _ensure_parent_directory(save_path)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
 def plot_predictive_vs_economic(pred_acc: Dict[str, float], sharpes: Dict[str, float], save_path="results/figures/08_predictive_vs_economic.png"):
     """Scatter of Directional Accuracy vs Sharpe."""
     plt.figure(figsize=(8, 6))
-    for model in pred_acc.keys():
+    for model in pred_acc:
         acc = pred_acc[model]
         s = sharpes.get(model, 0.0)
         plt.scatter(acc * 100.0, s, s=130, label=model)
@@ -141,7 +149,7 @@ def plot_predictive_vs_economic(pred_acc: Dict[str, float], sharpes: Dict[str, f
     plt.xlabel('Directional Accuracy (%)', fontsize=11)
     plt.ylabel('Net Sharpe Ratio', fontsize=11)
     plt.grid(True, linestyle='--', alpha=0.5)
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    _ensure_parent_directory(save_path)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -157,7 +165,7 @@ def plot_complexity_tradeoff(params_dict: Dict[str, int], sharpes: Dict[str, flo
     plt.ylabel('Net Sharpe Ratio', fontsize=11)
     plt.xscale('log')
     plt.grid(True, which="both", ls="--", alpha=0.5)
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    _ensure_parent_directory(save_path)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -171,7 +179,7 @@ def plot_seed_robustness(seed_results: Dict[str, List[float]], save_path="result
     plt.ylabel('Out-of-Sample Net Sharpe Ratio', fontsize=11)
     plt.xlabel('Architecture', fontsize=11)
     plt.grid(True, linestyle='--', alpha=0.5)
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    _ensure_parent_directory(save_path)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 

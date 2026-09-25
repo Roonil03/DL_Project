@@ -1,7 +1,14 @@
 import os
 import pandas as pd
-import numpy as np
 import yfinance as yf
+
+
+def _ensure_parent_directory(path: str) -> None:
+    """Create the cache directory when a parent path is present."""
+    parent = os.path.dirname(os.fspath(path))
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
 
 class BaseDatasetAdapter:
     def __init__(self, data_path: str):
@@ -41,7 +48,7 @@ class GlobalIndianAdapter(BaseDatasetAdapter):
             df = pd.read_csv(self.data_path, index_col=0, parse_dates=True)
             return df
 
-        os.makedirs(os.path.dirname(self.data_path), exist_ok=True)
+        _ensure_parent_directory(self.data_path)
         tickers = list(self.TICKER_MAP.keys())
         raw_data = yf.download(tickers, start=self.start_date, end=self.end_date, progress=False)
         
@@ -78,7 +85,7 @@ class SP500Adapter(BaseDatasetAdapter):
         if os.path.exists(self.data_path) and not force_download:
             return pd.read_csv(self.data_path, index_col=0, parse_dates=True)
             
-        os.makedirs(os.path.dirname(self.data_path), exist_ok=True)
+        _ensure_parent_directory(self.data_path)
         df = yf.download('^GSPC', start=self.start_date, end=self.end_date, progress=False)
         if 'Close' in df.columns.levels[0] if isinstance(df.columns, pd.MultiIndex) else 'Close' in df.columns:
             close_s = df['Close']
