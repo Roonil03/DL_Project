@@ -2,7 +2,10 @@ import numpy as np
 import pandas as pd
 from typing import Dict, Any, Optional
 from src.portfolio.volatility_targeting import apply_volatility_target
-from src.portfolio.transaction_costs import calculate_transaction_costs
+from src.portfolio.transaction_costs import (
+    calculate_position_turnover,
+    calculate_transaction_costs,
+)
 
 class Backtester:
     def __init__(self, target_vol: float = 0.10, max_leverage: float = 3.0, tc_bps: float = 5.0):
@@ -36,7 +39,10 @@ class Backtester:
         gross_asset_returns = positions * next_period_returns
         
         # 3. Compute transaction costs incurred when adjusting positions from t-1 to t
-        costs = calculate_transaction_costs(positions, self.tc_bps)
+        asset_turnover = calculate_position_turnover(positions)
+        costs = calculate_transaction_costs(
+            positions, self.tc_bps, turnover=asset_turnover
+        )
         
         # 4. Compute net returns
         net_asset_returns = gross_asset_returns - costs
@@ -46,9 +52,7 @@ class Backtester:
         port_net = np.nanmean(net_asset_returns, axis=1)
         
         # Turnover calculation: mean absolute change in leverage
-        pos_shift = np.roll(positions, 1, axis=0)
-        pos_shift[0] = 0.0
-        turnover_per_step = np.nanmean(np.abs(positions - pos_shift), axis=1)
+        turnover_per_step = np.nanmean(asset_turnover, axis=1)
         
         if dates is not None and len(dates) == len(port_net):
             gross_series = pd.Series(port_gross, index=dates, name='Gross_Return')

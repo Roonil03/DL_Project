@@ -18,15 +18,13 @@ def block_bootstrap_sharpe(returns: np.ndarray, block_size: int = 20, num_bootst
     point_sharpe = float(point_mean / point_vol) if point_vol > 1e-8 else 0.0
     
     num_blocks = max(1, n // block_size)
+    block_offsets = np.arange(block_size)
     sharpes = []
     
     for _ in range(num_bootstraps):
         start_indices = np.random.randint(0, n - block_size + 1, size=num_blocks)
-        boot_returns = []
-        for idx in start_indices:
-            boot_returns.extend(ret_arr[idx : idx + block_size])
-            
-        boot_arr = np.array(boot_returns)
+        block_indices = start_indices[:, None] + block_offsets
+        boot_arr = ret_arr[block_indices.ravel()]
         mean_ret = np.mean(boot_arr) * 252.0
         vol_ret = np.std(boot_arr, ddof=1) * np.sqrt(252.0)
         
