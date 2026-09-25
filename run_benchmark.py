@@ -139,7 +139,9 @@ def run_experiment():
     val_dataset = TensorDataset(torch.tensor(X_val, dtype=torch.float32), torch.tensor(y_val, dtype=torch.float32))
     test_dataset = TensorDataset(torch.tensor(X_test, dtype=torch.float32), torch.tensor(y_test, dtype=torch.float32))
     
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    # Preserve chronological ordering. Shuffling is inappropriate for a
+    # batch-level Sharpe objective because it destroys local return structure.
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     
@@ -164,14 +166,15 @@ def run_experiment():
             num_features=num_features,
             num_assets=num_assets,
             d_model=config_models.get('mamba', {}).get('d_model', 64),
-            n_layers=config_models.get('mamba', {}).get('layers', 2)
+            n_layers=config_models.get('mamba', {}).get('layers', 2),
+            allow_fallback=config_models.get('mamba', {}).get('allow_fallback', False)
         ),
         'PatchTST': lambda: PatchTSTSignalModel(
             lookback=lookback,
             num_features=num_features,
             num_assets=num_assets,
             patch_length=config_models.get('patchtst', {}).get('patch_length', 5),
-            d_model=config_models.get('lstm', {}).get('hidden_dim', 64),
+            d_model=config_models.get('patchtst', {}).get('d_model', 64),
             n_heads=config_models.get('patchtst', {}).get('heads', 4),
             n_layers=config_models.get('patchtst', {}).get('layers', 2),
             dropout=0.1

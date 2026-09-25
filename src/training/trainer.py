@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import time
 import copy
+import numpy as np
 
 class BaseTrainer:
     """

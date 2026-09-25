@@ -7,7 +7,9 @@ lstm:
 mamba:
   d_model: 64
   layers: 2
+  allow_fallback: false
 patchtst:
   patch_length: 5
+  d_model: 64
   heads: 4
   layers: 2
