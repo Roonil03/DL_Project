@@ -8,8 +8,9 @@ def calculate_returns(prices: pd.DataFrame) -> pd.DataFrame:
 
 def calculate_rolling_volatility(returns: pd.DataFrame, window: int = 20) -> pd.DataFrame:
     """Calculates rolling annualized volatility strictly using past window."""
-    vol = returns.rolling(window=window, min_periods=window).std() * np.sqrt(252)
-    return vol.bfill().fillna(1e-4)
+    # Keep the warm-up period missing. Backfilling here would copy a statistic
+    # calculated with future observations into earlier timestamps.
+    return returns.rolling(window=window, min_periods=window).std() * np.sqrt(252)
 
 def calculate_momentum(prices: pd.DataFrame, window: int = 20) -> pd.DataFrame:
     """Calculates price momentum strictly using past window."""
@@ -48,15 +49,22 @@ def build_features(prices: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd
         }, index=prices.index)
         feature_dfs.append(asset_feats)
         
-    full_features = pd.concat(feature_dfs, axis=1).fillna(0.0)
+    full_features = pd.concat(feature_dfs, axis=1)
+    full_features = full_features.replace([np.inf, -np.inf], np.nan).dropna()
+
+    # Remove only the initial rolling warm-up rows, keeping every returned
+    # object synchronized with the leakage-free feature index.
+    valid_index = full_features.index
+    rets = rets.loc[valid_index]
+    vol_20 = vol_20.loc[valid_index]
     
     feature_dict = {
         'returns': rets,
         'vol_20': vol_20,
-        'vol_60': vol_60,
-        'mom_5': mom_5,
-        'mom_20': mom_20,
-        'mom_60': mom_60
+        'vol_60': vol_60.loc[valid_index],
+        'mom_5': mom_5.loc[valid_index],
+        'mom_20': mom_20.loc[valid_index],
+        'mom_60': mom_60.loc[valid_index]
     }
     
     return full_features, rets, vol_20, feature_dict
