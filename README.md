@@ -62,6 +62,17 @@ Run `notebooks/financial_time_series_benchmark.ipynb`. Full training is expensiv
 - Configurable settings via `configs/`.
 - Tested across multiple random seeds `[42, 52, 62, 72, 82]`.
 
+## Result Status
+The files currently under `results/` predate the September 2026 methodology audit.
+They are retained for traceability, but they are **not report-ready evidence** and
+must be regenerated from the verified Kaggle dataset after installing the real
+`mamba_ssm` dependency. The audited pipeline now rejects a silent LSTM fallback
+being reported as Mamba, removes rolling-feature look-ahead backfilling, and
+preserves chronological batch order for Sharpe-loss training.
+
+See `already_done.md`, `remaining_work.md`, and `work_done.md` for the current
+project status and the safe next steps.
+
 ## Academic Integrity
 *Note: External AI assistance may have been used during the development of this codebase, subject to the university/course policy.*
 
