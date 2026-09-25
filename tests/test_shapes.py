@@ -32,7 +32,13 @@ def test_model_shapes():
     assert out_patch.shape == (batch_size, num_assets), f"PatchTST shape error: {out_patch.shape}"
     
     # 4. Mamba (or fallback)
-    model_mamba = MambaSignalModel(lookback=lookback, num_features=num_features, num_assets=num_assets)
+    # The fallback is permitted only for lightweight interface validation.
+    model_mamba = MambaSignalModel(
+        lookback=lookback,
+        num_features=num_features,
+        num_assets=num_assets,
+        allow_fallback=True,
+    )
     out_mamba = model_mamba(x)
     assert out_mamba.shape == (batch_size, num_assets), f"Mamba shape error: {out_mamba.shape}"
     
