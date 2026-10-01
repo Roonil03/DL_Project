@@ -166,7 +166,7 @@ def run_experiment():
             num_assets=num_assets,
             d_model=config_models.get('mamba', {}).get('d_model', 64),
             n_layers=config_models.get('mamba', {}).get('layers', 2),
-            allow_fallback=config_models.get('mamba', {}).get('allow_fallback', False)
+            allow_fallback=True  # <-- Make sure this is explicitly True!
         ),
         'PatchTST': lambda: PatchTSTSignalModel(
             lookback=lookback,

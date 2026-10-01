@@ -2,9 +2,9 @@
 
 | Comparison          |   Sharpe (A) |   Sharpe (B) |   Difference (A - B) |   Bootstrap p-value | Significant at 5%   |
 |:--------------------|-------------:|-------------:|---------------------:|--------------------:|:--------------------|
-| DLinear vs LSTM     |        1.127 |        2.215 |               -1.089 |               0.941 | No                  |
-| DLinear vs Mamba    |        1.127 |        0.655 |                0.472 |               0.189 | No                  |
-| DLinear vs PatchTST |        1.127 |       -0.287 |                1.413 |               0.011 | Yes                 |
-| LSTM vs Mamba       |        2.215 |        0.655 |                1.56  |               0.012 | Yes                 |
-| LSTM vs PatchTST    |        2.215 |       -0.287 |                2.502 |               0.001 | Yes                 |
-| Mamba vs PatchTST   |        0.655 |       -0.287 |                0.942 |               0.059 | No                  |
+| DLinear vs LSTM     |        0.618 |        1.916 |               -1.298 |               0.967 | Yes                 |
+| DLinear vs Mamba    |        0.618 |        1.858 |               -1.241 |               0.983 | Yes                 |
+| DLinear vs PatchTST |        0.618 |        0.551 |                0.066 |               0.488 | No                  |
+| LSTM vs Mamba       |        1.916 |        1.858 |                0.057 |               0.462 | No                  |
+| LSTM vs PatchTST    |        1.916 |        0.551 |                1.364 |               0.034 | Yes                 |
+| Mamba vs PatchTST   |        1.858 |        0.551 |                1.307 |               0.013 | Yes                 |
