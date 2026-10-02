@@ -1,0 +1,16 @@
+# Keep the build context small; datasets and outputs are mounted at run time.
+.git/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+data/*.csv
+data/*.parquet
+data/*.json
+results/models/*.pt
+results/models/*.pth
+results/predictions/*.csv
+results/backtests/*.csv
+*.log
+.docker/

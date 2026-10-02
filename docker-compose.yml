@@ -1,0 +1,28 @@
+# Local run helper for the Financial DL Benchmark container.
+# Data and outputs stay on the host checkout and are mounted in; code/deps stay in the image.
+# Manual steps (not executed by the migration):
+#   docker compose build jupyter
+#   docker compose up jupyter        # then open http://localhost:8888
+# GPU (optional): uncomment `runtime: nvidia` / deploy resources if the NVIDIA
+# Container Toolkit is installed. CPU-only hosts work unchanged.
+name: fin-dl-benchmark
+
+services:
+  jupyter:
+    build: .
+    image: fin-dl-benchmark:latest
+    container_name: fin-dl-benchmark-jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      # Primary dataset (host-owned, read-only in container; git-ignored CSVs).
+      - ./data:/home/jovyan/work/data:ro
+      # Regenerated tables/figures/predictions land back on the host.
+      - ./results:/home/jovyan/work/results
+      # Live notebook editing from the host.
+      - ./notebooks:/home/jovyan/work/notebooks
+      - ./configs:/home/jovyan/work/configs:ro
+    environment:
+      JUPYTER_TOKEN: ""
+    command: ["start-notebook.sh", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--NotebookApp.token=''"]
+    # runtime: nvidia
