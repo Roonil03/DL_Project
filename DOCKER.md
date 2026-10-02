@@ -8,7 +8,10 @@ are only accessed through explicit mounts at `docker compose` run time.
 
 - Docker Engine + Docker Compose v2.
 - Optional for GPU training: NVIDIA Container Toolkit.
-- Place the Kaggle CSV at `data/global_indian_markets.csv` (git-ignored).
+- Place the Kaggle CSV at `data/global_indian_markets.csv` (git-ignored), or fetch
+  it from inside the container with the notebook's `§0` Kaggle-API cell — it needs
+  credentials: uncomment the `~/.kaggle` mount in `docker-compose.yml` (host file
+  mode `600`) or set `KAGGLE_USERNAME` / `KAGGLE_KEY`.
 - No `pip install`, no `python -m venv` on the host.
 
 ## Build (manual — not run during migration)

@@ -22,6 +22,9 @@ services:
       # Live notebook editing from the host.
       - ./notebooks:/home/jovyan/work/notebooks
       - ./configs:/home/jovyan/work/configs:ro
+      # Kaggle credentials for the in-notebook dataset download cell (optional,
+      # uncomment after placing ~/.kaggle/kaggle.json with mode 600 on the host).
+      # - ~/.kaggle:/home/jovyan/.kaggle:ro
     environment:
       JUPYTER_TOKEN: ""
     command: ["start-notebook.sh", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--NotebookApp.token=''"]
