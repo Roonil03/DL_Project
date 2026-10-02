@@ -91,3 +91,20 @@ git log --oneline -3        # confirm; do not push unless asked
 - Regenerate `results/` from the audited pipeline; expand the notebook toward the
   33-section spec; add walk-forward, baselines, block-bootstrap, and seed-robustness
   work per `remaining_work.md` P1–P3.
+
+## 7. Addendum — notebook consolidation (same day, after the migration commits)
+
+- `02_run_benchmark.ipynb` (19 cells) + `03_dataset_audit.ipynb` (3 cells) were
+  merged into a single `notebooks/benchmark.ipynb` (23 cells: 1 header + audit +
+  pipeline), then the three previous notebooks (`02_`, `03_`, and the original
+  `financial_time_series_benchmark.ipynb` with pre-audit conclusions) were removed
+  via `git rm`. The originals remain recoverable via git history; stale conclusions
+  were intentionally not carried over.
+- `notebooks/full_and_tests.ipynb` (31 cells) = `benchmark.ipynb` + byte-identical
+  mirrors of `tests/test_data_integrity.py`, `tests/test_shapes.py`, and
+  `tests/test_optimizations.py` for inspection only (run via
+  `docker compose run --rm jupyter /opt/venv/bin/python -m pytest tests/ -v`).
+  Note: the requested name `full_and_tests.ipyb` was saved with the correct
+  `.ipynb` extension.
+- `notebooks/README.md` and `DOCKER.md` were updated to the new layout. The `.py`
+  scripts and `tests/` remain canonical; nothing was executed.
