@@ -1,16 +1,20 @@
 # Notebooks
 
-Unexecuted, outputs-cleared mirrors — safe to open without triggering training.
-Run them inside the Docker container on kernel **Financial DL Benchmark**
+Unexecuted, outputs-cleared mirror — safe to open without triggering training.
+Run inside the Docker container on kernel **Financial DL Benchmark**
 (`fin-dl-benchmark`); nothing is installed on the host.
 
-| Notebook | Source script (kept) | Purpose |
+| Notebook | Source scripts (kept, canonical) | Purpose |
 |---|---|---|
-| `financial_time_series_benchmark.ipynb` | — (original scaffold, 19 cells) | Early pipeline scaffold with pre-audit outputs/conclusions; retained for traceability, not report-ready |
-| `02_run_benchmark.ipynb` | `../run_benchmark.py` | Full 7-stage pipeline mirror; training cell gated by `RUN_TRAINING = False` (`OPTIONAL — EXECUTE TO TRAIN`) |
-| `03_dataset_audit.ipynb` | `../audit_dataset.py` | Dataset integrity check for `data/global_indian_markets.csv` |
+| `benchmark.ipynb` | `../audit_dataset.py` (Part A) + `../run_benchmark.py` (Part B) | Single consolidated notebook: dataset integrity check, then the full 7-stage pipeline. Training cell gated by `RUN_TRAINING = False` (`OPTIONAL — EXECUTE TO TRAIN`) |
+| `full_and_tests.ipynb` | same as above + `../tests/*.py` | Everything in `benchmark.ipynb` plus the test-suite mirrors for inspection |
+
+History: this folder previously held `02_run_benchmark.ipynb`,
+`03_dataset_audit.ipynb`, and the original `financial_time_series_benchmark.ipynb`
+(19 cells with pre-Sept-2026-audit outputs/conclusions). They were consolidated
+into `benchmark.ipynb`; the originals remain recoverable via git history. The
+original's stale conclusions were intentionally not carried over — see
+`../remaining_work.md` for why `results/` must be regenerated before any claim.
 
 Conventions: `execution_count: null`, no stored outputs, `RUN_TRAINING` guard on
 expensive cells, `CODE VALIDATION ONLY` labeling where synthetic checks apply.
-See `../DOCKER.md` for container run steps and `../remaining_work.md` for why
-`results/` must be regenerated before any claim.

@@ -29,11 +29,9 @@ docker compose up jupyter
 Inside JupyterLab, select kernel **Financial DL Benchmark** (`fin-dl-benchmark`),
 then open:
 
-- `notebooks/03_dataset_audit.ipynb` — data integrity check (run first).
-- `notebooks/02_run_benchmark.ipynb` — full pipeline; inspection-safe with
-  `RUN_TRAINING = False`. Set `True` only for the expensive 4-model x 5-seed run.
-- `notebooks/financial_time_series_benchmark.ipynb` — original 19-cell scaffold
-  (pre-audit conclusions; retained for traceability).
+- `notebooks/benchmark.ipynb` — single notebook: data integrity check (Part A, run first), then the full pipeline (Part B, inspection-safe with
+  `RUN_TRAINING = False`). Set `True` only for the expensive 4-model x 5-seed run.
+- `notebooks/full_and_tests.ipynb` — same as above plus the `tests/` suite mirrors for inspection.
 
 Equivalent script runs inside the container:
 
