@@ -4,10 +4,10 @@ Unexecuted, outputs-cleared mirror — safe to open without triggering training.
 Run inside the Docker container on kernel **Financial DL Benchmark**
 (`fin-dl-benchmark`); nothing is installed on the host.
 
-| Notebook | Source scripts (kept, canonical) | Purpose |
+| Notebook | Source | Purpose |
 |---|---|---|
-| `benchmark.ipynb` | `../audit_dataset.py` (Part A) + `../run_benchmark.py` (Part B) | Single consolidated notebook: dataset integrity check, then the full 7-stage pipeline. Training cell gated by `RUN_TRAINING = False` (`OPTIONAL — EXECUTE TO TRAIN`) |
-| `full_and_tests.ipynb` | same as above + `../tests/*.py` | Everything in `benchmark.ipynb` plus the test-suite mirrors for inspection |
+| `benchmark.ipynb` | retired `audit_dataset.py` (Part A) + `run_benchmark.py` (Part B), live `src/` | Single consolidated notebook: §0 Kaggle-API dataset download, Part A integrity check, then the full 7-stage pipeline. Training cell gated by `RUN_TRAINING = False` (`OPTIONAL — EXECUTE TO TRAIN`) |
+| `full_and_tests.ipynb` | same as above + live `../tests/*.py` mirrors | Everything in `benchmark.ipynb` plus the test-suite mirrors for inspection |
 
 History: this folder previously held `02_run_benchmark.ipynb`,
 `03_dataset_audit.ipynb`, and the original `financial_time_series_benchmark.ipynb`

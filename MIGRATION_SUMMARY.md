@@ -108,3 +108,19 @@ git log --oneline -3        # confirm; do not push unless asked
   `.ipynb` extension.
 - `notebooks/README.md` and `DOCKER.md` were updated to the new layout. The `.py`
   scripts and `tests/` remain canonical; nothing was executed.
+
+## 8. Addendum — Kaggle import, review fixes, script retirement
+
+- New `§0` cell in both notebooks downloads the primary dataset via the Kaggle API
+  (`import kaggle` + `dataset_download_files(.../global-and-indian-financial-markets-dataset-2025)`,
+  unzip to `data/`), unexecuted like everything else. `kaggle>=1.6,<2` added to
+  `requirements.docker.txt`; `docker-compose.yml` gained a commented `~/.kaggle`
+  credentials mount and `DOCKER.md` documents it.
+- Review fixes: `SP500Adapter` Close-column check disambiguated for
+  MultiIndex vs flat columns; notebook Mamba factory now reads `allow_fallback`
+  from `configs/models.yaml` (truthful-by-default `false`) instead of hardcoding
+  `True`; audit cells use `os.path.exists` instead of `pd.io.common.file_exists`.
+- Retired `run_benchmark.py` and `audit_dataset.py` (fully mirrored by the
+  notebooks; recoverable via git history). `src/` and `tests/` stay as the
+  canonical `.py` code. `Dockerfile`, `DOCKER.md`, notebook headers, and this
+  report were updated; nothing was executed.

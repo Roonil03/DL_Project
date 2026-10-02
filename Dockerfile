@@ -40,7 +40,7 @@ COPY --chown=${NB_USER}:${NB_GID} configs/ ./configs/
 COPY --chown=${NB_USER}:${NB_GID} src/ ./src/
 COPY --chown=${NB_USER}:${NB_GID} notebooks/ ./notebooks/
 COPY --chown=${NB_USER}:${NB_GID} tests/ ./tests/
-COPY --chown=${NB_USER}:${NB_GID} run_benchmark.py audit_dataset.py README.md DOCKER.md MIGRATION_SUMMARY.md ./
+COPY --chown=${NB_USER}:${NB_GID} README.md DOCKER.md MIGRATION_SUMMARY.md ./
 
 ENV JUPYTER_TOKEN=""
 

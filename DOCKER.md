@@ -36,11 +36,11 @@ then open:
   `RUN_TRAINING = False`). Set `True` only for the expensive 4-model x 5-seed run.
 - `notebooks/full_and_tests.ipynb` — same as above plus the `tests/` suite mirrors for inspection.
 
-Equivalent script runs inside the container:
+Tests run inside the container (the old root runners were retired in favor of
+the notebooks; recoverable via git history):
 
 ```bash
-docker compose run --rm jupyter /opt/venv/bin/python audit_dataset.py
-docker compose run --rm jupyter /opt/venv/bin/python run_benchmark.py
+docker compose run --rm jupyter /opt/venv/bin/python -m pytest tests/ -v
 ```
 
 ## Mounts
