@@ -1,7 +1,34 @@
-# Benchmarking Deep Learning Architectures for Financial Time-Series Prediction and Risk Optimization under Market Regimes
+# Regime Robust Finance Benchmark
+
+*Benchmarking Deep Learning Architectures for Financial Time-Series Prediction and Risk Optimization under Market Regimes*
 
 ## Abstract
 This study performs an independent, controlled benchmark of four architectural families for financial time-series signal generation on a multi-market dataset, with particular emphasis on the stability of risk-adjusted performance across market regimes. Rather than evaluating architectures only by prediction error or aggregate Sharpe ratio, the study examines regime-specific Sharpe, downside risk, drawdown, turnover, computational cost, and predictive-economic alignment.
+
+## Introduction — What the Code Does
+
+The codebase implements an end-to-end, leakage-safe benchmark that turns market
+history into volatility-scaled trading positions and scores architectures on
+risk-adjusted, regime-conditioned performance rather than raw prediction error:
+
+- **§0 — Dataset download**: `notebooks/benchmark.ipynb` (or
+  `notebooks/full_and_tests.ipynb`) fetches the primary Kaggle dataset into
+  git-ignored `data/` via a dedicated `import kaggle` cell.
+- **Part A — Dataset audit**: integrity check (records, columns, dtypes, missing
+  values, duplicates, SHA-256) before anything is trusted.
+- **Part B — Full pipeline**: load configs → ingest multi-asset prices →
+  engineer backward-looking features → classify Volatility × Trend regimes →
+  chronological 60/20/20 split with train-only scaling → rolling lookback windows
+  → instantiate DLinear / LSTM / Mamba / PatchTST under one common
+  signal interface → Sharpe-loss training across 5 seeds → volatility-targeted
+  backtest with transaction-cost sensitivity → regime-stratified metrics,
+  bootstrap statistics, and publication figures under `results/`.
+- **`src/` library**: importable modules for data, models, Sharpe loss,
+  portfolio construction, regimes, training, evaluation, backtesting, and
+  visualization — the notebooks orchestrate, they don't reimplement.
+- **`tests/` suite**: shape contracts, leakage/alignment guards, Mamba-identity
+  guard, and optimization-equivalence checks (mirrored for inspection in
+  `notebooks/full_and_tests.ipynb`; run with `pytest`).
 
 ## Research Gap
 Existing recent benchmarks, including Saly-Kaufmann et al. (2026), are based on particular asset universes and backtesting protocols. It remains valuable to determine whether conclusions about architectural robustness generalize to an independent publicly available multi-market dataset. Furthermore, aggregate Sharpe ratio can conceal differences in performance across market regimes (low/high volatility, bull/bear, crisis).
@@ -54,8 +81,43 @@ pip install -r requirements.txt
 python -m ipykernel install --user --name fin-dl-benchmark --display-name "Financial DL Benchmark"
 ```
 
-## Notebook Instructions
-Run `notebooks/financial_time_series_benchmark.ipynb`. Full training is expensive and is not executed automatically. The notebook validates tensor shapes and sets up the full experimental structure.
+## Notebook Instructions — How to Run
+
+### Option A — Docker (recommended, host untouched)
+
+All dependencies live in an in-image venv; see `DOCKER.md` for detail.
+
+```bash
+docker compose build jupyter
+docker compose up jupyter        # open http://localhost:8888
+```
+
+1. In JupyterLab select kernel **Financial DL Benchmark** (`fin-dl-benchmark`).
+2. Open `notebooks/benchmark.ipynb` (`full_and_tests.ipynb` adds the test
+   mirrors for reading alongside).
+3. Run `§0` once to download the Kaggle dataset — it needs credentials:
+   uncomment the `~/.kaggle` mount in `docker-compose.yml` (host file mode
+   `600`) or set `KAGGLE_USERNAME` / `KAGGLE_KEY`. Then verify the CSV is at
+   `data/global_indian_markets.csv` and record the data manifest
+   (`remaining_work.md` Priority 0).
+4. Run Part A (audit), then walk through Part B for inspection. Full training
+   is expensive and gated by `RUN_TRAINING = False` — set it to `True` only for
+   the 4-model × 5-seed run (`OPTIONAL — EXECUTE TO TRAIN`).
+5. Run the test suite any time with:
+   `docker compose run --rm jupyter /opt/venv/bin/python -m pytest tests/ -v`
+
+### Option B — Local virtual environment
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Or .venv\Scripts\activate on Windows
+pip install --upgrade pip
+pip install -r requirements.txt
+python -m ipykernel install --user --name fin-dl-benchmark --display-name "Financial DL Benchmark"
+```
+
+Then open the same notebooks with the `fin-dl-benchmark` kernel and follow
+steps 2–5 above (place `kaggle.json` at `~/.kaggle/kaggle.json` for `§0`).
 
 ## Reproducibility
 - Chronological train/val/test constraints are enforced.
