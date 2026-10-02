@@ -87,7 +87,9 @@ class SP500Adapter(BaseDatasetAdapter):
             
         _ensure_parent_directory(self.data_path)
         df = yf.download('^GSPC', start=self.start_date, end=self.end_date, progress=False)
-        if 'Close' in df.columns.levels[0] if isinstance(df.columns, pd.MultiIndex) else 'Close' in df.columns:
+        is_multi = isinstance(df.columns, pd.MultiIndex)
+        has_close = ('Close' in df.columns.levels[0]) if is_multi else ('Close' in df.columns)
+        if has_close:
             close_s = df['Close']
         else:
             close_s = df
