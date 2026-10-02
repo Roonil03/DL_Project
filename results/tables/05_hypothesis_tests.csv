@@ -1,7 +1,4 @@
-Comparison,Sharpe (A),Sharpe (B),Difference (A - B),Bootstrap p-value,Significant at 5%
-DLinear vs LSTM,0.618,1.916,-1.298,0.9670,Yes
-DLinear vs Mamba,0.618,1.858,-1.241,0.9830,Yes
-DLinear vs PatchTST,0.618,0.551,0.066,0.4880,No
-LSTM vs Mamba,1.916,1.858,0.057,0.4620,No
-LSTM vs PatchTST,1.916,0.551,1.364,0.0340,Yes
-Mamba vs PatchTST,1.858,0.551,1.307,0.0130,Yes
+Comparison,Sharpe (A),Sharpe (B),Difference (A - B),Bootstrap p-value
+DLinear vs LSTM,0.859,1.617,-0.759,0.8760
+DLinear vs PatchTST,0.859,1.556,-0.697,0.8430
+LSTM vs PatchTST,1.617,1.556,0.061,0.4800
