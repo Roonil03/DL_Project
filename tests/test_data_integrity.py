@@ -2,9 +2,37 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from src.data.adapters import GlobalIndianAdapter
 from src.data.features import build_features, calculate_rolling_volatility
 from src.data.windows import create_rolling_windows
 from src.models.mamba_model import MAMBA_AVAILABLE, MambaSignalModel
+
+
+def test_kaggle_adapter_extracts_only_close_series(tmp_path):
+    raw = pd.DataFrame({
+        "date": ["2020-01-01", "2020-01-02", "2020-01-03"],
+        "nifty50_close": [100.0, 101.0, 102.0],
+        "sp500_close": [200.0, 201.0, 202.0],
+        "usd_inr_close": [70.0, 70.1, 70.2],
+        "gold_close": [1500.0, 1501.0, 1502.0],
+        "brent_close": [60.0, 61.0, 62.0],
+        "nifty50_open": [99.0, 100.0, 101.0],
+        "nifty50_volume": [1, 2, 3],
+    })
+    path = tmp_path / "global_indian_markets.csv"
+    raw.to_csv(path, index=False)
+
+    prices = GlobalIndianAdapter(data_path=str(path)).load()
+
+    assert list(prices.columns) == ["NIFTY50", "SP500", "USDINR", "GOLD", "BRENT"]
+    assert isinstance(prices.index, pd.DatetimeIndex)
+    assert prices.shape == (3, 5)
+
+
+def test_kaggle_adapter_does_not_silently_use_yahoo(tmp_path):
+    missing = tmp_path / "missing.csv"
+    with pytest.raises(FileNotFoundError, match="Primary Kaggle dataset"):
+        GlobalIndianAdapter(data_path=str(missing)).load()
 
 
 def test_rolling_volatility_does_not_backfill_warmup_period():

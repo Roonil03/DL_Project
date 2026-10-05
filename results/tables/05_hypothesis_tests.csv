@@ -1,4 +1,4 @@
 Comparison,Sharpe (A),Sharpe (B),Difference (A - B),Bootstrap p-value
-DLinear vs LSTM,0.859,1.617,-0.759,0.8760
-DLinear vs PatchTST,0.859,1.556,-0.697,0.8430
-LSTM vs PatchTST,1.617,1.556,0.061,0.4800
+DLinear vs LSTM,0.936,1.334,-0.398,0.6820
+DLinear vs PatchTST,0.936,1.395,-0.459,0.7690
+LSTM vs PatchTST,1.334,1.395,-0.061,0.5630

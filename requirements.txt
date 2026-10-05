@@ -11,3 +11,4 @@ statsmodels
 networkx
 yfinance
 tabulate
+requests

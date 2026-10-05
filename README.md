@@ -95,14 +95,13 @@ docker compose up jupyter        # open http://localhost:8888
 1. In JupyterLab select kernel **Financial DL Benchmark** (`fin-dl-benchmark`).
 2. Open `notebooks/benchmark.ipynb` (`full_and_tests.ipynb` adds the test
    mirrors for reading alongside).
-3. Run `§0` once to download the Kaggle dataset — it needs credentials:
-   uncomment the `~/.kaggle` mount in `docker-compose.yml` (host file mode
-   `600`) or set `KAGGLE_USERNAME` / `KAGGLE_KEY`. Then verify the CSV is at
-   `data/global_indian_markets.csv` and record the data manifest
-   (`remaining_work.md` Priority 0).
+3. Run `§0` once to download the public Kaggle archive. The notebook extracts
+   its verified daily-market member to `data/global_indian_markets.csv`; no
+   credentials are required for this public endpoint.
 4. Run Part A (audit), then walk through Part B for inspection. Full training
-   is expensive and gated by `RUN_TRAINING = False` — set it to `True` only for
-   the 4-model × 5-seed run (`OPTIONAL — EXECUTE TO TRAIN`).
+   is enabled by starting notebook execution with `RUN_TRAINING=true`; otherwise
+   the notebook runs in inspection mode. Mamba is included only when the real
+   `mamba_ssm` package is available.
 5. Run the test suite any time with:
    `docker compose run --rm jupyter /opt/venv/bin/python -m pytest tests/ -v`
 
@@ -117,7 +116,7 @@ python -m ipykernel install --user --name fin-dl-benchmark --display-name "Finan
 ```
 
 Then open the same notebooks with the `fin-dl-benchmark` kernel and follow
-steps 2–5 above (place `kaggle.json` at `~/.kaggle/kaggle.json` for `§0`).
+steps 2–5 above.
 
 ## Reproducibility
 - Chronological train/val/test constraints are enforced.
@@ -125,15 +124,14 @@ steps 2–5 above (place `kaggle.json` at `~/.kaggle/kaggle.json` for `§0`).
 - Tested across multiple random seeds `[42, 52, 62, 72, 82]`.
 
 ## Result Status
-The files currently under `results/` predate the September 2026 methodology audit.
-They are retained for traceability, but they are **not report-ready evidence** and
-must be regenerated from the verified Kaggle dataset after installing the real
-`mamba_ssm` dependency. The audited pipeline now rejects a silent LSTM fallback
-being reported as Mamba, removes rolling-feature look-ahead backfilling, and
-preserves chronological batch order for Sharpe-loss training.
 
-See `already_done.md`, `remaining_work.md`, and `work_done.md` for the current
-project status and the safe next steps.
+The tables and figures under `results/` were regenerated on 5 October 2026 by
+executing `notebooks/benchmark.ipynb` in Docker against the verified public
+Kaggle daily-market CSV. See `Final_Metrics.md` for the exact data hash,
+out-of-sample metrics, and limitations. The CPU image does not provide
+`mamba_ssm`, so Mamba is explicitly excluded; no fallback output is labelled as
+Mamba. A complete four-architecture comparison still requires a compatible
+CUDA/Mamba image and a fresh run.
 
 ## Academic Integrity
 *Note: External AI assistance may have been used during the development of this codebase, subject to the university/course policy.*

@@ -38,15 +38,47 @@ class GlobalIndianAdapter(BaseDatasetAdapter):
         '^TNX': 'US10Y'
     }
 
-    def __init__(self, data_path: str = "data/global_indian_markets.csv", start_date: str = "2010-01-01", end_date: str = "2025-12-31"):
+    KAGGLE_CLOSE_MAP = {
+        'nifty50_close': 'NIFTY50',
+        'sp500_close': 'SP500',
+        'usd_inr_close': 'USDINR',
+        'gold_close': 'GOLD',
+        'brent_close': 'BRENT',
+    }
+
+    def __init__(
+        self,
+        data_path: str = "data/global_indian_markets.csv",
+        start_date: str = "2010-01-01",
+        end_date: str = "2025-12-31",
+        allow_yfinance_fallback: bool = False,
+    ):
         super().__init__(data_path)
         self.start_date = start_date
         self.end_date = end_date
+        self.allow_yfinance_fallback = allow_yfinance_fallback
 
     def load(self, force_download: bool = False) -> pd.DataFrame:
         if os.path.exists(self.data_path) and not force_download:
-            df = pd.read_csv(self.data_path, index_col=0, parse_dates=True)
-            return df
+            raw = pd.read_csv(self.data_path)
+            if {'date', *self.KAGGLE_CLOSE_MAP}.issubset(raw.columns):
+                prices = raw.set_index('date')[list(self.KAGGLE_CLOSE_MAP)]
+                prices = prices.rename(columns=self.KAGGLE_CLOSE_MAP)
+                prices.index = pd.to_datetime(prices.index, errors='raise')
+            else:
+                # Also accept a previously normalized cache with a date index.
+                prices = pd.read_csv(self.data_path, index_col=0, parse_dates=True)
+
+            prices = prices.apply(pd.to_numeric, errors='coerce')
+            prices = prices[~prices.index.duplicated(keep='last')].sort_index()
+            return prices.ffill().dropna()
+
+        if not self.allow_yfinance_fallback:
+            raise FileNotFoundError(
+                f"Primary Kaggle dataset not found at {self.data_path!r}. "
+                "Run notebook section 0 to download it. The Yahoo Finance "
+                "substitute is disabled unless allow_yfinance_fallback=True."
+            )
 
         _ensure_parent_directory(self.data_path)
         tickers = list(self.TICKER_MAP.keys())
