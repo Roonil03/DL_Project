@@ -7,19 +7,6 @@ verification milestone. The next formal milestone is the full multi-market
 evaluation, hyperparameter tuning, and regime-specific backtest. Do not start
 expensive training until the blocking items below are complete.
 
-## Priority 0 - evidence and data integrity
-
-1. Obtain the exact Global and Indian Financial Markets Dataset files from the
-   cited Kaggle source and place them under `data/` without committing them.
-2. Record a data manifest containing file names, hashes, columns, data types,
-   date coverage, frequency, missing values, duplicate timestamps, asset
-   identifiers, source fields, and the verified license.
-3. Replace or explicitly separate the current Yahoo Finance download fallback.
-   It is not proof that the named Kaggle dataset was used and it omits parts of
-   the synopsis universe, including India 10-year yield and macro fields.
-4. Regenerate every table and figure after the audited pipeline is used. The
-   existing `results/` artifacts predate leakage and model-label safeguards and
-   are preserved only for traceability.
 
 ## Priority 1 - model and experiment validity
 

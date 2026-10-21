@@ -55,3 +55,20 @@ The old result files are not considered final evidence. They were generated
 before the leakage fix, chronological-batch safeguard, and truthful Mamba
 dependency enforcement. Follow `remaining_work.md` before using any model
 ranking or conclusion in the interim/final report.
+
+
+--completed
+
+## Priority 0 - evidence and data integrity
+
+1. Obtain the exact Global and Indian Financial Markets Dataset files from the
+   cited Kaggle source and place them under `data/` without committing them.
+2. Record a data manifest containing file names, hashes, columns, data types,
+   date coverage, frequency, missing values, duplicate timestamps, asset
+   identifiers, source fields, and the verified license.
+3. Replace or explicitly separate the current Yahoo Finance download fallback.
+   It is not proof that the named Kaggle dataset was used and it omits parts of
+   the synopsis universe, including India 10-year yield and macro fields.
+4. Regenerate every table and figure after the audited pipeline is used. The
+   existing `results/` artifacts predate leakage and model-label safeguards and
+   are preserved only for traceability.
