@@ -1,30 +1,63 @@
-# Local run helper for the Financial DL Benchmark container.
-# Data and outputs stay on the host checkout and are mounted in; code/deps stay in the image.
-# Manual steps (not executed by the migration):
+# Local CUDA run helper for the Financial DL Benchmark.
+#
+# Build and start manually:
 #   docker compose build jupyter
-#   docker compose up jupyter        # then open http://localhost:8888
-# GPU (optional): use a CUDA-enabled PyTorch build and uncomment `runtime:
-# nvidia` if the NVIDIA Container Toolkit is installed. CPU-only hosts work
-# unchanged.
+#   docker compose up jupyter
+# Then open http://localhost:8888. The benchmark runner can be launched with:
+#   docker compose run --rm jupyter ./run_all_models.sh
 name: fin-dl-benchmark
 
 services:
   jupyter:
-    build: .
-    image: fin-dl-benchmark:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fin-dl-benchmark:cuda12.4
     container_name: fin-dl-benchmark-jupyter
+    working_dir: /home/jovyan/work
+    user: "1000:1000"
+    # Compose v2 GPU reservation. NVIDIA Container Toolkit must be installed
+    # on the host; the image remains CUDA-capable even when no run is started.
+    gpus: all
+    environment:
+      IN_CONTAINER: "1"
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      PYTHONUNBUFFERED: "1"
+      JUPYTER_ENABLE_LAB: "yes"
     ports:
       # Authentication is disabled for this local development service, so bind
       # it to host loopback instead of exposing it to the LAN.
       - "127.0.0.1:8888:8888"
     volumes:
-      # Primary dataset cache. Writable so the notebook's public Kaggle download
-      # cell can populate the git-ignored host directory.
-      - ./data:/home/jovyan/work/data
-      # Regenerated tables/figures/predictions land back on the host.
-      - ./results:/home/jovyan/work/results
-      # Live notebook editing from the host.
-      - ./notebooks:/home/jovyan/work/notebooks
+      # Dataset cache. Notebook section 0 may download into this directory.
+      - ./data:/home/jovyan/work/data:rw
+      # Standard result tables, figures and predictions.
+      - ./results:/home/jovyan/work/results:rw
+      # Runner telemetry, executed notebooks and per-job logs.
+      - ./outputs:/home/jovyan/work/outputs:rw
+      - ./artifacts:/home/jovyan/work/artifacts:rw
+      - ./logs:/home/jovyan/work/logs:rw
+      # Live notebook and source editing from the host checkout.
+      - ./notebooks:/home/jovyan/work/notebooks:rw
+      - ./src:/home/jovyan/work/src:ro
+      - ./tests:/home/jovyan/work/tests:ro
+      - ./run_all_models.sh:/home/jovyan/work/run_all_models.sh:ro
+      # Configs are inputs for a run; keep them read-only in the container.
       - ./configs:/home/jovyan/work/configs:ro
-    command: ["start-notebook.sh", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--IdentityProvider.token=''"]
-    # runtime: nvidia
+      - ./Dockerfile:/home/jovyan/work/Dockerfile:ro
+      - ./docker-compose.yml:/home/jovyan/work/docker-compose.yml:ro
+      - ./requirements.docker.txt:/home/jovyan/work/requirements.docker.txt:ro
+      - ./requirements.mamba-compat.txt:/home/jovyan/work/requirements.mamba-compat.txt:ro
+      - ./README.md:/home/jovyan/work/README.md:ro
+      - ./DOCKER.md:/home/jovyan/work/DOCKER.md:ro
+      - ./Final_Metrics.md:/home/jovyan/work/Final_Metrics.md:rw
+    shm_size: "8gb"
+    command:
+      - jupyter
+      - lab
+      - --ip=0.0.0.0
+      - --port=8888
+      - --no-browser
+      - --ServerApp.token=
+      - --ServerApp.allow_origin=*

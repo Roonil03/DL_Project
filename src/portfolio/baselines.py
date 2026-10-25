@@ -1,18 +1,27 @@
 import numpy as np
 import pandas as pd
 
+
+def _matrix(returns: np.ndarray) -> np.ndarray:
+    array = np.asarray(returns, dtype=float)
+    if array.ndim == 1:
+        return array[:, None]
+    if array.ndim != 2:
+        raise ValueError('returns must be a (time, assets) array')
+    return array
+
 def get_zero_signal_baseline(returns: np.ndarray) -> np.ndarray:
     """
     1. Zero-Signal Baseline: Flat position (0.0 allocation).
     """
-    return np.zeros_like(returns)
+    return np.zeros_like(_matrix(returns))
 
 
 def get_long_only_baseline(returns: np.ndarray) -> np.ndarray:
     """
     2. Long-Only Baseline: Constant +1.0 fully invested position.
     """
-    return np.ones_like(returns)
+    return np.ones_like(_matrix(returns))
 
 
 def get_momentum_baseline(returns: np.ndarray, lookback: int = 20) -> np.ndarray:
@@ -20,6 +29,9 @@ def get_momentum_baseline(returns: np.ndarray, lookback: int = 20) -> np.ndarray
     3. Simple Trend / Momentum Baseline: 
        Goes long (+1) if trailing rolling sum of returns is > 0, else short (-1).
     """
+    returns = _matrix(returns)
+    if lookback <= 0:
+        raise ValueError('lookback must be positive')
     T, N = returns.shape
     signals = np.zeros_like(returns)
     
@@ -36,6 +48,9 @@ def get_volatility_managed_baseline(returns: np.ndarray, target_vol: float = 0.1
     4. Volatility-Managed Baseline:
        Scales position inversely proportional to rolling realized volatility.
     """
+    returns = _matrix(returns)
+    if lookback <= 0 or target_vol <= 0:
+        raise ValueError('lookback and target_vol must be positive')
     T, N = returns.shape
     signals = np.ones_like(returns)  # Base long direction
     ex_ante_vol = np.ones_like(returns)

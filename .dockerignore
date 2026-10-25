@@ -14,3 +14,6 @@ results/predictions/*.csv
 results/backtests/*.csv
 *.log
 .docker/
+outputs/
+artifacts/
+*.zip

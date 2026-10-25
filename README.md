@@ -11,12 +11,13 @@ The codebase implements an end-to-end, leakage-safe benchmark that turns market
 history into volatility-scaled trading positions and scores architectures on
 risk-adjusted, regime-conditioned performance rather than raw prediction error:
 
-- **§0 — Dataset download**: `notebooks/benchmark.ipynb` (or
-  `notebooks/full_and_tests.ipynb`) fetches the primary Kaggle dataset into
-  git-ignored `data/` via a dedicated `import kaggle` cell.
+- **Data audit**: `notebooks/10_data_audit.ipynb` verifies the exact Kaggle
+  daily and monthly source files, source mapping, license, schemas, dates,
+  missingness, duplicates, and SHA-256 hashes before training.
 - **Part A — Dataset audit**: integrity check (records, columns, dtypes, missing
   values, duplicates, SHA-256) before anything is trusted.
-- **Part B — Full pipeline**: load configs → ingest multi-asset prices →
+- **Benchmark**: `notebooks/20_benchmark.ipynb` follows the 33-section research
+  protocol: load configs → ingest multi-asset prices →
   engineer backward-looking features → classify Volatility × Trend regimes →
   chronological 60/20/20 split with train-only scaling → rolling lookback windows
   → instantiate DLinear / LSTM / Mamba / PatchTST under one common
@@ -26,9 +27,10 @@ risk-adjusted, regime-conditioned performance rather than raw prediction error:
 - **`src/` library**: importable modules for data, models, Sharpe loss,
   portfolio construction, regimes, training, evaluation, backtesting, and
   visualization — the notebooks orchestrate, they don't reimplement.
-- **`tests/` suite**: shape contracts, leakage/alignment guards, Mamba-identity
-  guard, and optimization-equivalence checks (mirrored for inspection in
-  `notebooks/full_and_tests.ipynb`; run with `pytest`).
+- **Notebook suite**: `00_core` provides shared runtime helpers, `30_validation`
+  runs integrity checks, and `40_report` generates report tables and figures.
+- **`tests/` suite**: shape contracts, leakage/alignment guards, Mamba identity,
+  walk-forward splits, telemetry, and checkpoint correctness.
 
 ## Research Gap
 Existing recent benchmarks, including Saly-Kaufmann et al. (2026), are based on particular asset universes and backtesting protocols. It remains valuable to determine whether conclusions about architectural robustness generalize to an independent publicly available multi-market dataset. Furthermore, aggregate Sharpe ratio can conceal differences in performance across market regimes (low/high volatility, bull/bear, crisis).
@@ -71,39 +73,23 @@ Existing recent benchmarks, including Saly-Kaufmann et al. (2026), are based on 
 ## Regime Analysis
 - Volatility × Trend Regime classification based purely on available historical data at time `t`.
 
-## Installation
-### Virtual Environment Setup
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Or .venv\Scripts\activate on Windows
-pip install --upgrade pip
-pip install -r requirements.txt
-python -m ipykernel install --user --name fin-dl-benchmark --display-name "Financial DL Benchmark"
-```
-
 ## Notebook Instructions — How to Run
 
 ### Option A — Docker (recommended, host untouched)
 
-All dependencies live in an in-image venv; see `DOCKER.md` for detail.
+All dependencies live in the image's uv-created `/opt/venv`; no Conda or
+Mamba environment manager is used. See `DOCKER.md` for the pinned matrix.
 
 ```bash
-docker compose build jupyter
-docker compose up jupyter        # open http://localhost:8888
+./run_all_models.sh
 ```
 
-1. In JupyterLab select kernel **Financial DL Benchmark** (`fin-dl-benchmark`).
-2. Open `notebooks/benchmark.ipynb` (`full_and_tests.ipynb` adds the test
-   mirrors for reading alongside).
-3. Run `§0` once to download the public Kaggle archive. The notebook extracts
-   its verified daily-market member to `data/global_indian_markets.csv`; no
-   credentials are required for this public endpoint.
-4. Run Part A (audit), then walk through Part B for inspection. Full training
-   is enabled by starting notebook execution with `RUN_TRAINING=true`; otherwise
-   the notebook runs in inspection mode. Mamba is included only when the real
-   `mamba_ssm` package is available.
-5. Run the test suite any time with:
-   `docker compose run --rm jupyter /opt/venv/bin/python -m pytest tests/ -v`
+The runner builds and starts Compose, performs CUDA and genuine-Mamba
+preflight, audits the data, executes each model/seed/fold unit, validates the
+run, writes `Final_Metrics.md`, and creates `artifacts/<run_id>.zip` only after
+all required units succeed. Set `DEVICE=cpu` explicitly for a CPU smoke run.
+Useful overrides include `RUN_ID`, `MODELS`, `SEEDS`, `FOLDS`, `EPOCHS`,
+`RESUME_MODE`, `MAX_RETRIES`, `ESTIMATE_ONLY`, and `INCLUDE_DATA`.
 
 ### Option B — Local virtual environment
 
@@ -115,8 +101,8 @@ pip install -r requirements.txt
 python -m ipykernel install --user --name fin-dl-benchmark --display-name "Financial DL Benchmark"
 ```
 
-Then open the same notebooks with the `fin-dl-benchmark` kernel and follow
-steps 2–5 above.
+Local environments are intended for lightweight development only; audited
+benchmark results must come from the pinned container.
 
 ## Reproducibility
 - Chronological train/val/test constraints are enforced.
@@ -125,13 +111,9 @@ steps 2–5 above.
 
 ## Result Status
 
-The tables and figures under `results/` were regenerated on 5 October 2026 by
-executing `notebooks/benchmark.ipynb` in Docker against the verified public
-Kaggle daily-market CSV. See `Final_Metrics.md` for the exact data hash,
-out-of-sample metrics, and limitations. The CPU image does not provide
-`mamba_ssm`, so Mamba is explicitly excluded; no fallback output is labelled as
-Mamba. A complete four-architecture comparison still requires a compatible
-CUDA/Mamba image and a fresh run.
+Only an archive produced by a successful `run_all_models.sh` execution is a
+publishable result. The runner rejects missing CUDA for `DEVICE=gpu` and rejects
+any Mamba implementation whose identity is not exactly `Mamba`.
 
 ## Academic Integrity
 *Note: External AI assistance may have been used during the development of this codebase, subject to the university/course policy.*
