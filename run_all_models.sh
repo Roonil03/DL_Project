@@ -238,10 +238,19 @@ PY
   done
 done
 
-python - "$TIMING" "$ESTIMATE_ONLY" "${DURATIONS[@]}" <<'PY'
+python - "$TIMING" "$EVENTS" "$ESTIMATE_ONLY" "${DURATIONS[@]}" <<'PY'
 import json, statistics, sys
 from datetime import datetime, timezone
-path,estimate,*items=sys.argv[1:]
+from pathlib import Path
+path,events,estimate,*items=sys.argv[1:]
+if not items and Path(events).is_file():
+    for line in Path(events).read_text(encoding="utf-8").splitlines():
+        try:
+            row=json.loads(line)
+            if row.get("event")=="unit_complete":
+                items.append(f"{row.get('model','unknown')}:{row.get('seconds',0)}")
+        except json.JSONDecodeError:
+            continue
 rows=[{"model":x.rsplit(':',1)[0],"seconds":float(x.rsplit(':',1)[1])} for x in items]
 vals=[r["seconds"] for r in rows]
 payload={"schema_version":"1.0","timestamp_utc":datetime.now(timezone.utc).isoformat(),"units":rows,
