@@ -1,69 +1,52 @@
-# Docker usage — Financial DL Benchmark
+# CUDA Docker runtime
 
-All Python dependencies live in an isolated venv **inside the image** (`/opt/venv`).
-Nothing is installed on the host and no host root paths are touched. Host files
-are only accessed through explicit mounts at `docker compose` run time.
+The benchmark image is pinned to CUDA 12.4, Python 3.11, and a CUDA-enabled
+PyTorch build. `uv` installs the interpreter and creates `/opt/venv`; all
+project packages are installed with `/opt/venv/bin/pip3`. Conda and the Mamba
+environment manager are not used (`mamba-ssm` is the model library).
 
-## Prerequisites (host)
+## Host requirements
 
-- Docker Engine + Docker Compose v2.
-- Optional for GPU training: a CUDA-enabled PyTorch base/build plus NVIDIA
-  Container Toolkit. The pinned base image must be checked because some tags
-  ship CPU-only PyTorch.
-- Place the Kaggle daily-market CSV at `data/global_indian_markets.csv`
-  (git-ignored), or let notebook `§0` fetch the public Kaggle archive and extract
-  `daily_market_data.csv` to that canonical path. Credentials are not required
-  for this public download.
-- No `pip install`, no `python -m venv` on the host.
+- NVIDIA driver compatible with CUDA 12.4.
+- Docker Desktop/Engine with Compose v2 and NVIDIA Container Toolkit support.
+- The exact git-ignored Kaggle archive members under
+  `data/kaggle_global_indian_markets/global-india-markets-macro/`.
 
-## Build (manual — not run during migration)
+## Run
 
 ```bash
-docker build -t fin-dl-benchmark .
-# or
-docker compose build jupyter
+./run_all_models.sh
 ```
 
-## Run Jupyter (manual)
+When invoked on the host, the script builds the image, starts the Jupyter
+service, and re-enters itself inside the container. It then runs CUDA/Mamba
+preflight, data audit, one benchmark notebook per model/seed/fold, validation,
+report generation, checksums, and ZIP integrity checks.
+
+Common overrides:
 
 ```bash
-docker compose up jupyter
-# open http://localhost:8888
+RUN_ID=pilot ESTIMATE_ONLY=1 ./run_all_models.sh
+RUN_ID=smoke MODELS=dlinear,lstm SEEDS=42 FOLDS=0 EPOCHS=2 ./run_all_models.sh
+RUN_ID=full DEVICE=gpu RESUME_MODE=auto MAX_RETRIES=2 ./run_all_models.sh
 ```
 
-Inside JupyterLab, select kernel **Financial DL Benchmark** (`fin-dl-benchmark`),
-then open:
+`DEVICE=gpu` fails fast when CUDA is unavailable. CPU use must be explicit with
+`DEVICE=cpu`. `RESUME_MODE` is `auto`, `restart`, or `fail`. Raw data is omitted
+from the final ZIP unless `INCLUDE_DATA=1` is set.
 
-- `notebooks/benchmark.ipynb` — single notebook: data integrity check (Part A, run first), then the full pipeline (Part B, inspection-safe with
-  `RUN_TRAINING = False`). Set `True` only for the expensive 4-model x 5-seed run.
-- `notebooks/full_and_tests.ipynb` — same as above plus the `tests/` suite mirrors for inspection.
-
-Tests run inside the container (the old root runners were retired in favor of
-the notebooks; recoverable via git history):
+JupyterLab is available separately with:
 
 ```bash
-docker compose run --rm jupyter /opt/venv/bin/python -m pytest tests/ -v
+docker compose up --build jupyter
 ```
 
-## Mounts
+Open <http://localhost:8888> and select **Financial DL Benchmark (CUDA)**.
+Clean templates are under `notebooks/`; executed copies are always stored under
+the selected run directory.
 
-| Host path | Container path | Mode | Purpose |
-|---|---|---|---|
-| `./data` | `/home/jovyan/work/data` | `rw` | Git-ignored Kaggle dataset cache |
-| `./results` | `/home/jovyan/work/results` | `rw` | regenerated tables/figures |
-| `./notebooks` | `/home/jovyan/work/notebooks` | `rw` | live notebook editing |
-| `./configs` | `/home/jovyan/work/configs` | `ro` | experiment configs |
+## Output contract
 
-## Notes
-
-- Base image: `quay.io/jupyter/pytorch-notebook:python-3.11`. The project venv
-  reuses its in-image PyTorch/scientific packages to avoid installing a second
-  multi-gigabyte framework stack. CPU-only hosts work unchanged. GPU execution
-  additionally requires a CUDA-enabled base/build and NVIDIA Container Toolkit;
-  `runtime: nvidia` alone cannot turn a CPU-only PyTorch build into a GPU build.
-- `mamba-ssm` is intentionally **not** baked in (platform-sensitive). Install it
-  in a derived image before claiming any Mamba result:
-  `pip install mamba-ssm>=2.2` (see `remaining_work.md` Priority 1).
-- The committed `results/` files and `Final_Metrics.md` were regenerated on
-  5 October 2026 from the verified public Kaggle daily-market CSV. Mamba remains
-  excluded until a compatible real `mamba_ssm` environment is used.
+Successful runs produce `outputs/<run_id>/`, root `Final_Metrics.md`, and
+`artifacts/<run_id>.zip`. Failed runs preserve partial telemetry and
+checkpoints, return a nonzero status, and never create a ZIP.

@@ -1,31 +1,39 @@
-# Pinned runtime for the Docker image (Python 3.11, in-image venv at /opt/venv).
-# Original `requirements.txt` is left untouched; this file is what the Dockerfile installs.
-# All installs happen INSIDE the image — nothing is pip-installed on the host.
+# Reproducible CUDA/Python 3.11 runtime for Docker.
 #
-# The base image already supplies PyTorch and the main scientific stack.  The
-# Dockerfile creates its venv with `--system-site-packages`, so these constraints
-# validate/reuse that in-image stack instead of downloading a second PyTorch and
-# CUDA toolchain.  Host Python packages are never visible inside the container.
+# The Dockerfile installs torch==2.4.1+cu124 from the CUDA 12.4 PyTorch
+# index first. Keep the same exact pin here so a fresh `pip3 install -r` in the
+# container cannot silently replace it with a CPU wheel.
+--extra-index-url https://download.pytorch.org/whl/cu124
 
-torch>=2.4,<3
-numpy>=1.26,<3
-pandas>=2.2,<3
-scikit-learn>=1.4,<2
-matplotlib>=3.8,<4
-seaborn>=0.13,<1
-pyyaml>=6.0,<7
-jupyter>=1.1,<2
-ipykernel>=6.29,<7
-statsmodels>=0.14,<1
-networkx>=3.2,<4
-yfinance>=0.2.40,<1
-tabulate>=0.9,<1
-nbformat>=5.9,<6
-kaggle>=1.6,<2
-requests>=2.31,<3
-pytest>=8,<9
-mamba-ssm>=2.2.0,<3.0
-# Optional, NOT installed by default (hardware/platform sensitive):
-#   pip install mamba-ssm>=2.2
-# Required before any result may be reported as "Mamba" (see configs/models.yaml
-# allow_fallback:false and remaining_work.md Priority 1).
+torch==2.4.1+cu124
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn==1.5.2
+matplotlib==3.9.2
+seaborn==0.13.2
+PyYAML==6.0.2
+
+# Notebook execution and kernel registration.
+jupyterlab==4.2.5
+jupyter-server==2.14.2
+ipykernel==6.29.5
+nbformat==5.10.4
+nbclient==0.10.0
+nbconvert==7.16.4
+
+# Project/data/test dependencies.
+statsmodels==0.14.4
+networkx==3.4.2
+yfinance==0.2.50
+tabulate==0.9.0
+kaggle==1.6.17
+requests==2.32.3
+pytest==8.3.3
+nvidia-ml-py==12.560.30
+psutil==6.1.0
+
+# The benchmark's Mamba path is strict (configs/models.yaml has
+# allow_fallback:false). Build these against the already-installed CUDA torch;
+# the Dockerfile passes --no-build-isolation for that reason.
+causal-conv1d==1.5.0.post8
+mamba-ssm==2.2.4

@@ -183,3 +183,28 @@ def plot_seed_robustness(seed_results: Dict[str, List[float]], save_path="result
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
+
+def plot_crisis_window_returns(returns_dict: Dict[str, pd.Series], crisis_start=None, crisis_end=None,
+                               save_path="results/figures/crisis_window_returns.png"):
+    """Compare equity curves within a declared crisis window."""
+    plt.figure(figsize=(11, 5))
+    for name, returns in returns_dict.items():
+        series = pd.Series(returns)
+        selected = series.loc[crisis_start:crisis_end] if crisis_start is not None or crisis_end is not None else series
+        plt.plot((1 + selected.fillna(0)).cumprod(), lw=2, label=name)
+    plt.title('Cumulative Returns During Crisis Window')
+    plt.xlabel('Date'); plt.ylabel('Growth Factor'); plt.legend(); plt.grid(True, linestyle='--', alpha=.5)
+    _ensure_parent_directory(save_path); plt.savefig(save_path, dpi=300, bbox_inches='tight'); plt.close()
+
+
+def plot_rank_stability(rank_frame: pd.DataFrame, save_path="results/figures/rank_stability.png"):
+    """Show architecture rank (one is best) across walk-forward folds."""
+    frame = pd.DataFrame(rank_frame)
+    plt.figure(figsize=(10, 5))
+    for model in frame.columns:
+        plt.plot(frame.index, frame[model], marker='o', label=model)
+    plt.gca().invert_yaxis()
+    plt.title('Architecture Rank Stability Across Folds')
+    plt.xlabel('Fold'); plt.ylabel('Rank (1 = best)'); plt.legend(); plt.grid(True, linestyle='--', alpha=.5)
+    _ensure_parent_directory(save_path); plt.savefig(save_path, dpi=300, bbox_inches='tight'); plt.close()
+

@@ -62,11 +62,22 @@ class GlobalIndianAdapter(BaseDatasetAdapter):
             
             # Filter by start and end date bounds
             df = df.loc[self.start_date:self.end_date]
-            return df.ffill().dropna()
+            close_mapping = {
+                'nifty50_close': 'NIFTY50',
+                'sp500_close': 'SP500',
+                'usd_inr_close': 'USDINR',
+                'gold_close': 'GOLD',
+                'brent_close': 'BRENT',
+            }
+            missing = [column for column in close_mapping if column not in df.columns]
+            if missing:
+                raise ValueError(f"Primary Kaggle dataset is missing close fields: {missing}")
+            prices = df[list(close_mapping)].rename(columns=close_mapping)
+            return prices.ffill().dropna()
 
         if not self.allow_yfinance_fallback:
             raise FileNotFoundError(
-                f"Audited dataset not found at {self.data_path!r}. "
+                f"Primary Kaggle dataset not found at {self.data_path!r}. "
                 "Ensure 'daily_market_data.csv' is placed inside the 'data/' directory."
             )
 

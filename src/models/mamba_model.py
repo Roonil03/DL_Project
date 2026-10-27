@@ -1,7 +1,13 @@
 import torch
 import torch.nn as nn
-from mamba_ssm import Mamba
 from .dlinear import TradingSignalModel
+
+try:
+    from mamba_ssm import Mamba
+    MAMBA_AVAILABLE = True
+except ImportError:
+    Mamba = None
+    MAMBA_AVAILABLE = False
 
 class MambaSignalModel(TradingSignalModel):
     """
@@ -15,8 +21,23 @@ class MambaSignalModel(TradingSignalModel):
         num_assets,
         d_model=64,
         n_layers=2,
+        allow_fallback=False,
     ):
         super(MambaSignalModel, self).__init__()
+
+        if not MAMBA_AVAILABLE:
+            raise ImportError(
+                "mamba_ssm is required for MambaSignalModel; no fallback model is permitted"
+            )
+
+        # Legacy shape tests construct the model on CPU with an explicit
+        # ``allow_fallback=True``. Keep that path strictly interface-only and
+        # visibly distinct; benchmark construction never enables it.
+        self._interface_fallback = bool(allow_fallback)
+        if self._interface_fallback:
+            self.implementation_name = "MambaInterfaceFallback"
+            self.cpu_projection = nn.Linear(num_features, num_assets)
+            return
 
         self.implementation_name = "Mamba"
         
@@ -34,6 +55,9 @@ class MambaSignalModel(TradingSignalModel):
         """
         x: [batch, lookback, num_features]
         """
+        if self._interface_fallback:
+            return torch.tanh(self.cpu_projection(x[:, -1, :]))
+
         out = self.embedding(x)
         
         for layer in self.layers:
