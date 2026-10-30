@@ -290,7 +290,7 @@ PY
 cp "$RUN_DIR/Final_Metrics.md" Final_Metrics.md
 mkdir -p "$RUN_DIR/code"
 cp -R src configs notebooks tests "$RUN_DIR/code/"
-cp Dockerfile docker-compose.yml requirements.docker.txt requirements.mamba-compat.txt run_all_models.sh README.md DOCKER.md "$RUN_DIR/code/"
+cp Dockerfile docker-compose.yml requirements.docker.txt requirements.mamba-compat.txt run_all_models.sh README.md RunningNotebooks.md DOCKER.md "$RUN_DIR/code/"
 python - "$RUN_DIR" <<'PY'
 import hashlib,json,sys
 from pathlib import Path

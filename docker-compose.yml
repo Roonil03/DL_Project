@@ -52,6 +52,7 @@ services:
       - ./README.md:/home/jovyan/work/README.md:ro
       - ./DOCKER.md:/home/jovyan/work/DOCKER.md:ro
       - ./Final_Metrics.md:/home/jovyan/work/Final_Metrics.md:rw
+      - ./RunningNotebooks.md:/home/jovyan/work/RunningNotebooks.md:ro
     shm_size: "8gb"
     command:
       - jupyter

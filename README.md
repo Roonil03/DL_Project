@@ -1,122 +1,107 @@
-# Regime Robust Finance Benchmark
+# Regime-Robust Financial Deep Learning Benchmark
 
-*Benchmarking Deep Learning Architectures for Financial Time-Series Prediction and Risk Optimization under Market Regimes*
+This project benchmarks four neural architectures for financial time-series
+signal generation and portfolio construction: DLinear, LSTM, Mamba, and
+PatchTST. The notebooks provide an audited, chronological, leakage-safe
+workflow that evaluates both predictive quality and risk-adjusted trading
+performance across market regimes.
 
-## Abstract
-This study performs an independent, controlled benchmark of four architectural families for financial time-series signal generation on a multi-market dataset, with particular emphasis on the stability of risk-adjusted performance across market regimes. Rather than evaluating architectures only by prediction error or aggregate Sharpe ratio, the study examines regime-specific Sharpe, downside risk, drawdown, turnover, computational cost, and predictive-economic alignment.
+## Research gap
 
-## Introduction — What the Code Does
+Many financial deep-learning comparisons report one aggregate forecasting or
+Sharpe score. That can hide failures during high-volatility, bearish, or crisis
+periods. This project addresses the gap by comparing architectures on an
+independent multi-market dataset with regime-specific risk, trading-cost,
+uncertainty, and compute analysis rather than relying on a single aggregate
+ranking.
 
-The codebase implements an end-to-end, leakage-safe benchmark that turns market
-history into volatility-scaled trading positions and scores architectures on
-risk-adjusted, regime-conditioned performance rather than raw prediction error:
+## Models and contributors
 
-- **Data audit**: `notebooks/10_data_audit.ipynb` verifies the exact Kaggle
-  daily and monthly source files, source mapping, license, schemas, dates,
-  missingness, duplicates, and SHA-256 hashes before training.
-- **Part A — Dataset audit**: integrity check (records, columns, dtypes, missing
-  values, duplicates, SHA-256) before anything is trusted.
-- **Benchmark**: `notebooks/20_benchmark.ipynb` follows the 33-section research
-  protocol: load configs → ingest multi-asset prices →
-  engineer backward-looking features → classify Volatility × Trend regimes →
-  chronological 60/20/20 split with train-only scaling → rolling lookback windows
-  → instantiate DLinear / LSTM / Mamba / PatchTST under one common
-  signal interface → Sharpe-loss training across 5 seeds → volatility-targeted
-  backtest with transaction-cost sensitivity → regime-stratified metrics,
-  bootstrap statistics, and publication figures under `results/`.
-- **`src/` library**: importable modules for data, models, Sharpe loss,
-  portfolio construction, regimes, training, evaluation, backtesting, and
-  visualization — the notebooks orchestrate, they don't reimplement.
-- **Notebook suite**: `00_core` provides shared runtime helpers, `30_validation`
-  runs integrity checks, and `40_report` generates report tables and figures.
-- **`tests/` suite**: shape contracts, leakage/alignment guards, Mamba identity,
-  walk-forward splits, telemetry, and checkpoint correctness.
-
-## Research Gap
-Existing recent benchmarks, including Saly-Kaufmann et al. (2026), are based on particular asset universes and backtesting protocols. It remains valuable to determine whether conclusions about architectural robustness generalize to an independent publicly available multi-market dataset. Furthermore, aggregate Sharpe ratio can conceal differences in performance across market regimes (low/high volatility, bull/bear, crisis).
-
-## Research Questions
-1. Which architecture has the best aggregate Sharpe?
-2. Which architecture has the best Sharpe in high-volatility/stress conditions?
-3. Which architecture has the smallest degradation from normal to stress regime?
-4. Which architecture delivers the best Sharpe relative to parameter count/training time?
-5. Does the model with the best forecasting score also have the highest Sharpe?
-
-## Objectives
-- Build a generic PyTorch framework to train, backtest, and evaluate deep learning architectures under a Sharpe optimization objective.
-- Implement DLinear, LSTM, PatchTST, and Mamba models.
-- Apply volatility targeting and transaction cost modelling.
-- Detect market regimes and evaluate robustness.
+| Model | Worked on |
+|---|---|
+| DLinear | |
+| LSTM | |
+| Mamba | |
+| PatchTST | |
 
 ## Dataset
-- **Primary Dataset**: Global & Indian Financial Markets Dataset 2025 (Kaggle)
-- **Dataset Caveats**: Financial market data is prone to look-ahead bias, non-stationarity, and survivorship bias (especially in indices). The codebase attempts to strictly prevent chronological leakage.
 
-## Models
-1. **DLinear**: Simple learned temporal mapping baseline.
-2. **LSTM**: Recurrent temporal context baseline.
-3. **Mamba (State Space)**: Selective state space representation.
-4. **PatchTST**: Attention-based temporal patching.
+The benchmark uses the **Global and Indian Financial Markets Dataset 2025**
+from [Kaggle](https://www.kaggle.com/datasets/muzaddidafaque/global-and-indian-financial-markets-dataset-2025).
+The audited input directory is:
 
-## Experimental Protocol
-- 60% Train, 20% Validation, 20% Test (Chronological splits).
-- Inputs are historical lookback windows (e.g., 20 days).
-- Models predict a bounded directional signal \([-1, 1]\).
-- Positions scaled by ex-ante volatility (Target volatility: 10%).
-- Training objective: Negative Annualized Sharpe Ratio.
-
-## Metrics
-- **Economic**: Annualized Sharpe, Sortino, Max Drawdown, Annualized Return.
-- **Trading**: Turnover, average leverage.
-- **Predictive**: Directional accuracy, MSE, Correlation.
-
-## Regime Analysis
-- Volatility × Trend Regime classification based purely on available historical data at time `t`.
-
-## Notebook Instructions — How to Run
-
-### Option A — Docker (recommended, host untouched)
-
-All dependencies live in the image's uv-created `/opt/venv`; no Conda or
-Mamba environment manager is used. See `DOCKER.md` for the pinned matrix.
-
-```bash
-./run_all_models.sh
+```text
+data/kaggle_global_indian_markets/global-india-markets-macro/
 ```
 
-The runner builds and starts Compose, performs CUDA and genuine-Mamba
-preflight, audits the data, executes each model/seed/fold unit, validates the
-run, writes `Final_Metrics.md`, and creates `artifacts/<run_id>.zip` only after
-all required units succeed. Set `DEVICE=cpu` explicitly for a CPU smoke run.
-Useful overrides include `RUN_ID`, `MODELS`, `SEEDS`, `FOLDS`, `EPOCHS`,
-`RESUME_MODE`, `MAX_RETRIES`, `ESTIMATE_ONLY`, and `INCLUDE_DATA`.
+It contains the daily market file, the monthly macro file, and the source/code
+mapping used to verify provenance. The runner records file names, SHA-256
+hashes, schema, data types, date coverage, frequency, missing values,
+duplicate timestamps, asset identifiers, source fields, and the declared
+dataset license in `metadata/data_manifest.json`. Raw data is not committed to
+Git and is excluded from result archives unless explicitly requested.
 
-### Option B — Local virtual environment
+## Evaluation metrics
 
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Or .venv\Scripts\activate on Windows
-pip install --upgrade pip
-pip install -r requirements.txt
-python -m ipykernel install --user --name fin-dl-benchmark --display-name "Financial DL Benchmark"
-```
+Metrics are computed on untouched chronological test data after validation-only
+configuration selection. Unless stated otherwise, model statistics are
+aggregated over five seeds (`42, 52, 62, 72, 82`) and reported with the mean,
+standard deviation, and paired block-bootstrap confidence intervals where
+applicable.
 
-Local environments are intended for lightweight development only; audited
-benchmark results must come from the pinned container.
+| Dimension | Metrics and statistics |
+|---|---|
+| Economic performance | Annualized return, annualized volatility, Sharpe ratio, Sortino ratio, maximum drawdown, and downside deviation. |
+| Predictive quality | Mean squared error (MSE), directional accuracy, and signal/return correlation. |
+| Trading behaviour | Turnover, average and maximum leverage, transaction-cost attribution, and cost sensitivity in basis points. |
+| Regime robustness | Sharpe, return, volatility, drawdown, sample count, and confidence interval for each volatility/trend regime; stress-regime degradation and rank stability. |
+| Compute and reliability | Parameter count, epoch duration, throughput, GPU memory/utilization, retry count, checkpoint/resume outcome, and failure timeline. |
 
-## Reproducibility
-- Chronological train/val/test constraints are enforced.
-- Configurable settings via `configs/`.
-- Tested across multiple random seeds `[42, 52, 62, 72, 82]`.
+### Observed benchmark snapshot
 
-## Result Status
+The following values come from the completed `benchmark-20261025` run. They
+use a 5 bps transaction-cost assumption, one evaluation fold, and five seeds;
+the Sharpe standard deviation is across seeds.
 
-Only an archive produced by a successful `run_all_models.sh` execution is a
-publishable result. The runner rejects missing CUDA for `DEVICE=gpu` and rejects
-any Mamba implementation whose identity is not exactly `Mamba`.
+| Model | Mean Sharpe | SD Sharpe | Mean turnover | Directional accuracy | MSE |
+|---|---:|---:|---:|---:|---:|
+| DLinear | -0.4568 | 0.9983 | 28.0627 | 0.4989 | 0.130059 |
+| LSTM | -0.6172 | 1.1431 | 8.5427 | 0.4826 | 0.240953 |
+| Mamba | 0.4042 | 0.7156 | 85.2683 | 0.4810 | 0.326572 |
+| PatchTST | 0.3800 | 0.7999 | 43.1207 | 0.5098 | 0.370780 |
 
-## Academic Integrity
-*Note: External AI assistance may have been used during the development of this codebase, subject to the university/course policy.*
+These are historical backtest statistics, not investment advice. Interpret
+them together with regime sample sizes, confidence intervals, costs, signal
+timing, data quality, and the reproducibility manifest. The full generated
+report is available in [`Final_Metrics.md`](Final_Metrics.md).
 
-## References
-1. Saly-Kaufmann, A., Wood, K., Peter-Calliess, J., & Zohren, S. (2026). Deep Learning for Financial Time Series: A Large-Scale Benchmark of Risk-Adjusted Performance. arXiv:2603.01820.
+## Information documents
+
+- [RunningNotebooks.md](RunningNotebooks.md) — Docker-first instructions for
+  building the CUDA image, running or resuming notebooks, estimating runtime,
+  validating outputs, and creating the portable ZIP archive.
+- [DOCKER.md](DOCKER.md) — pinned CUDA image, dependency, and GPU preflight
+  details.
+- [Final_Metrics.md](Final_Metrics.md) — metrics from the completed benchmark
+  run.
+
+## Repository layout
+
+- `notebooks/` — clean notebook templates for audit, benchmark, validation,
+  shared runtime helpers, and reporting.
+- `src/` — reusable data, model, training, portfolio, evaluation, and
+  visualization modules.
+- `tests/` — unit and integrity tests for chronology, leakage, metrics,
+  checkpoints, telemetry, and archive validation.
+- `configs/` — data, model, regime, backtest, and training configuration.
+
+## Academic integrity
+
+External AI assistance may have been used during development, subject to the
+applicable university or course policy.
+
+## Reference
+
+Saly-Kaufmann, A., Wood, K., Peter-Calliess, J., & Zohren, S. (2026).
+*Deep Learning for Financial Time Series: A Large-Scale Benchmark of
+Risk-Adjusted Performance*. arXiv:2603.01820.
