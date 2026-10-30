@@ -17,12 +17,12 @@ ranking.
 
 ## Models and contributors
 
-| Model | Worked on |
+| Model | Worked by |
 |---|---|
-| DLinear | |
-| LSTM | |
-| Mamba | |
-| PatchTST | |
+| DLinear | [Lakshmihollat](https://github.com/Lakshmihollat) |
+| LSTM | [Roonil03](https://github.com/Roonil03) |
+| Mamba | [Aryan Soni](https://github.com/AryanSoni1609) |
+| PatchTST | [tanay](https://github.com/electro-glitch) |
 
 ## Dataset
 
@@ -84,24 +84,3 @@ report is available in [`Final_Metrics.md`](Final_Metrics.md).
   details.
 - [Final_Metrics.md](Final_Metrics.md) — metrics from the completed benchmark
   run.
-
-## Repository layout
-
-- `notebooks/` — clean notebook templates for audit, benchmark, validation,
-  shared runtime helpers, and reporting.
-- `src/` — reusable data, model, training, portfolio, evaluation, and
-  visualization modules.
-- `tests/` — unit and integrity tests for chronology, leakage, metrics,
-  checkpoints, telemetry, and archive validation.
-- `configs/` — data, model, regime, backtest, and training configuration.
-
-## Academic integrity
-
-External AI assistance may have been used during development, subject to the
-applicable university or course policy.
-
-## Reference
-
-Saly-Kaufmann, A., Wood, K., Peter-Calliess, J., & Zohren, S. (2026).
-*Deep Learning for Financial Time Series: A Large-Scale Benchmark of
-Risk-Adjusted Performance*. arXiv:2603.01820.
