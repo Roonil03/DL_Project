@@ -16,5 +16,5 @@ Reasons regeneration is required:
   or license used for these outputs.
 
 Do not delete these artifacts. Regenerate them into a new timestamped results
-directory after completing the checklist in `../remaining_work.md`, then compare
-the audited outputs with this preserved baseline.
+directory after completing the audited workflow in `../RunningNotebooks.md`,
+then compare the audited outputs with this preserved baseline.
