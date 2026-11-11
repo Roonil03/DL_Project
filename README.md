@@ -77,6 +77,20 @@ report is available in [`Final_Metrics.md`](Final_Metrics.md).
 
 ## Information documents
 
+The flow is: audited Kaggle files → past-only features → chronological
+train/validation/test folds → one bounded signal per asset → one portfolio
+sizing and fee pass → matched-date metrics and regime reports. DLinear is a
+DLinear-inspired signal model, and the PatchTST implementation is a compact
+patch Transformer rather than a faithful reproduction. The optional
+`ahat_fin` model is inspired by dual-axis attention research; its results are
+not part of the published four-model benchmark.
+
+For a synthetic CPU development environment, install pinned packages from
+`requirements.cpu.txt` in a local virtual environment and run only targeted
+tests. The full audited benchmark uses the pinned container. Reproduce any
+claim with the data hash, Git commit, resolved configuration, seeds, folds,
+fees, dependency lock, and complete run archive.
+
 - [RunningNotebooks.md](RunningNotebooks.md) — Docker-first instructions for
   building the CUDA image, running or resuming notebooks, estimating runtime,
   validating outputs, and creating the portable ZIP archive.

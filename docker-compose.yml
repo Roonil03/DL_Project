@@ -25,6 +25,7 @@ services:
       NVIDIA_DRIVER_CAPABILITIES: compute,utility
       PYTHONUNBUFFERED: "1"
       JUPYTER_ENABLE_LAB: "yes"
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN:?Set JUPYTER_TOKEN to a nonempty secret before starting Jupyter}
     ports:
       # Authentication is disabled for this local development service, so bind
       # it to host loopback instead of exposing it to the LAN.
@@ -60,5 +61,4 @@ services:
       - --ip=0.0.0.0
       - --port=8888
       - --no-browser
-      - --ServerApp.token=
-      - --ServerApp.allow_origin=*
+      - --ServerApp.token=${JUPYTER_TOKEN:?Set JUPYTER_TOKEN to a nonempty secret before starting Jupyter}

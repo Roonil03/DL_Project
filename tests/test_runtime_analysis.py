@@ -2,6 +2,7 @@ import json
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from src.data.walk_forward import walk_forward_splits
 from src.evaluation.analysis import architecture_rank_stability, predictive_metrics
@@ -34,6 +35,13 @@ def test_corrupt_latest_checkpoint_falls_back_to_previous(tmp_path):
     run.save_checkpoint({'epoch': 2})
     run.checkpoint_path.write_bytes(b'not a torch checkpoint')
     assert run.load_checkpoint()['epoch'] == 1
+
+
+def test_checkpoint_metadata_prevents_cross_fold_resume(tmp_path):
+    run = ExperimentRun(root=tmp_path, name='unit', run_id='fold', checkpoint_metadata={'fold': 0})
+    run.save_checkpoint({'epoch': 1, 'metadata': {'fold': 0}})
+    with pytest.raises(RuntimeError, match='No valid checkpoint'):
+        run.load_checkpoint(expected_metadata={'fold': 1})
 
 
 def test_predictive_rank_and_paired_blocks():

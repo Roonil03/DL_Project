@@ -24,6 +24,26 @@ Mamba implementation is unavailable.
 
 ## Docker runner (recommended)
 
+Set `JUPYTER_TOKEN` to a private, nonempty value before starting Compose. The
+service binds to host loopback and requires this token. Native Windows does
+not provide the supported CUDA extension build path for genuine Mamba in this
+project; use WSL2 with NVIDIA Container Toolkit or the CUDA container.
+
+For PowerShell 5.1 or 7, use `scripts/run_dl_benchmark.ps1`. For example:
+
+```powershell
+$env:JUPYTER_TOKEN = Read-Host 'Jupyter token'
+$data = '.\data\kaggle_global_indian_markets\global-india-markets-macro'
+.\scripts\run_dl_benchmark.ps1 -DatasetPath $data -Models dlinear,lstm -Device cpu -WhatIf
+.\scripts\run_dl_benchmark.ps1 -DatasetPath $data -Models dlinear,lstm -Device cpu -RunId cpu-pilot
+```
+
+The script validates local files, hashes inputs, uses a project-local
+`.venv-benchmark` for CPU development packages, and invokes the existing
+notebook runner inside Compose. `-WhatIf` prints the plan without training.
+Checkpoint files use PyTorch serialization; load only checkpoints from trusted
+authors and keep raw market data and credentials outside the result archive.
+
 From Git Bash or WSL at the repository root:
 
 ```bash

@@ -8,6 +8,8 @@ def _matrix(returns: np.ndarray) -> np.ndarray:
         return array[:, None]
     if array.ndim != 2:
         raise ValueError('returns must be a (time, assets) array')
+    if array.shape[1] == 0:
+        raise ValueError('returns must contain at least one asset')
     return array
 
 def get_zero_signal_baseline(returns: np.ndarray) -> np.ndarray:
@@ -30,8 +32,8 @@ def get_momentum_baseline(returns: np.ndarray, lookback: int = 20) -> np.ndarray
        Goes long (+1) if trailing rolling sum of returns is > 0, else short (-1).
     """
     returns = _matrix(returns)
-    if lookback <= 0:
-        raise ValueError('lookback must be positive')
+    if not isinstance(lookback, (int, np.integer)) or isinstance(lookback, bool) or lookback <= 0:
+        raise ValueError('lookback must be a positive integer')
     T, N = returns.shape
     signals = np.zeros_like(returns)
     
@@ -49,7 +51,8 @@ def get_volatility_managed_baseline(returns: np.ndarray, target_vol: float = 0.1
        Scales position inversely proportional to rolling realized volatility.
     """
     returns = _matrix(returns)
-    if lookback <= 0 or target_vol <= 0:
+    if (not isinstance(lookback, (int, np.integer)) or isinstance(lookback, bool)
+            or lookback <= 0 or not np.isfinite(target_vol) or target_vol <= 0):
         raise ValueError('lookback and target_vol must be positive')
     T, N = returns.shape
     signals = np.ones_like(returns)  # Base long direction
