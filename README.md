@@ -59,7 +59,8 @@ applicable.
 
 ### Observed benchmark snapshot
 
-The following values come from the completed `benchmark-20261025` run. They
+The following values come from the completed `full-validation` run of
+11 November 2026. They represent the first recorded walk-forward fold. They
 use a 5 bps transaction-cost assumption, one evaluation fold, and five seeds;
 the Sharpe standard deviation is across seeds.
 
@@ -67,13 +68,16 @@ the Sharpe standard deviation is across seeds.
 |---|---:|---:|---:|---:|---:|
 | DLinear | -0.4568 | 0.9983 | 28.0627 | 0.4989 | 0.130059 |
 | LSTM | -0.6172 | 1.1431 | 8.5427 | 0.4826 | 0.240953 |
-| Mamba | 0.4042 | 0.7156 | 85.2683 | 0.4810 | 0.326572 |
+| Mamba | 0.5511 | 0.6568 | 76.6328 | 0.4774 | 0.262322 |
 | PatchTST | 0.3800 | 0.7999 | 43.1207 | 0.5098 | 0.370780 |
 
 These are historical backtest statistics, not investment advice. Interpret
 them together with regime sample sizes, confidence intervals, costs, signal
 timing, data quality, and the reproducibility manifest. The full generated
 report is available in [`Final_Metrics.md`](Final_Metrics.md).
+See [`docs/analysis-2026-11-11.md`](docs/analysis-2026-11-11.md) for the
+actual evaluation dates, provenance checks, cost sensitivity, and archive
+limitations. The date-split settings in the config do not describe fold 0.
 
 ## Information documents
 

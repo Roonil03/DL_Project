@@ -3,7 +3,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$DatasetPath,
     [ValidateSet('dlinear','lstm','mamba','patchtst','ahat_fin')][string[]]$Models = @('dlinear','lstm','mamba','patchtst'),
-    [ValidateSet('gpu','cpu')][string]$Device = 'gpu',
+    [ValidateSet('gpu')][string]$Device = 'gpu',
     [int[]]$Seeds = @(42,52,62,72,82),
     [int[]]$Folds = @(0),
     [int]$Epochs = 100,
@@ -38,7 +38,7 @@ $run = Join-Path $output $RunId
 if ((Test-Path -LiteralPath $run) -and $ResumeMode -eq 'fail') { throw 'Run exists and ResumeMode=fail.' }
 if ((Test-Path -LiteralPath $run) -and $ResumeMode -eq 'restart') { Write-Host 'Existing run will be archived by the container runner.' }
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw 'Docker Compose is required. Install Docker Desktop and enable NVIDIA Container Toolkit for GPU runs.' }
-if ($Device -eq 'gpu' -and -not (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) { throw 'GPU mode requires NVIDIA driver and Container Toolkit. Use supported WSL2/Docker CUDA, or choose Device=cpu.' }
+if (-not (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) { throw 'GPU mode requires an NVIDIA driver and NVIDIA Container Toolkit. On Windows, use WSL2 with Docker GPU support.' }
 if (-not $env:JUPYTER_TOKEN) { throw 'Set a nonempty JUPYTER_TOKEN in your PowerShell session before running.' }
 $plan = @{
     run_id=$RunId; model_names=$Models; seeds=$Seeds; folds=$Folds; device=$Device
@@ -46,16 +46,10 @@ $plan = @{
     estimate_only=[bool]$EstimateOnly; checkpoint_archive=[bool]$PackageCheckpoints
 }
 Write-Host ('Planned run: ' + ($plan | ConvertTo-Json -Compress -Depth 5))
-Write-Host 'Commands: uv venv --seed .venv-benchmark; docker compose build jupyter; docker compose run --rm -e ... jupyter ./run_all_models.sh'
+Write-Host 'Commands: docker compose down --remove-orphans; docker compose build --pull --no-cache jupyter; docker compose up -d --force-recreate jupyter; GPU preflight; execute runner in running container.'
 Write-Host 'Estimate: prior telemetry is required for a numeric forecast; ESTIMATE_ONLY=1 runs one measured epoch per selected model.'
 if ($WhatIfPreference) { return }
-if (-not $PSCmdlet.ShouldProcess($run, 'Create local environment and run benchmark inside Docker')) { return }
-if (-not (Get-Command uv -ErrorAction SilentlyContinue)) { throw 'Install uv for a project-local Python environment, then retry.' }
-if (-not (Test-Path '.venv-benchmark')) { & uv venv --python 3.11 --seed '.venv-benchmark'; if ($LASTEXITCODE -ne 0) { throw 'uv venv failed' } }
-if ($Device -eq 'cpu') {
-    & '.\.venv-benchmark\Scripts\pip.exe' install -r requirements.cpu.txt
-    if ($LASTEXITCODE -ne 0) { throw 'Pinned CPU development package installation failed' }
-}
+if (-not $PSCmdlet.ShouldProcess($run, 'Build CUDA container, verify GPU access, and run benchmark in Docker')) { return }
 New-Item -ItemType Directory -Path $output -Force | Out-Null
 $preflight = Join-Path $output ($RunId + '.preflight.json')
 $files = @('daily_market_data.csv','monthly_macro_data.csv','codes_and_sources.md') | ForEach-Object {
@@ -65,11 +59,26 @@ $files = @('daily_market_data.csv','monthly_macro_data.csv','codes_and_sources.m
 @{schema_version='1.0'; timestamp_utc=[DateTime]::UtcNow.ToString('o'); run_id=$RunId; data_files=$files; plan=$plan} |
     ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $preflight -Encoding UTF8
 $env:GIT_REVISION = (& git rev-parse HEAD).Trim()
-$composeArgs = @('compose','run','--rm', '-e',"GIT_REVISION=$env:GIT_REVISION",'-e',"RUN_ID=$RunId",'-e',"MODELS=$($Models -join ',')",'-e',"SEEDS=$($Seeds -join ',')",'-e',"FOLDS=$($Folds -join ',')",'-e',"DEVICE=$Device",'-e',"RESUME_MODE=$ResumeMode",'-e',"EPOCHS=$Epochs",'-e',"MAX_RETRIES=$MaxRetries",'-e',"ESTIMATE_ONLY=$([int][bool]$EstimateOnly)",'jupyter','./run_all_models.sh')
 try {
-    & docker compose build jupyter
-    if ($LASTEXITCODE -ne 0) { throw 'Docker build failed' }
-    & docker @composeArgs
+    # Stop stale containers and reuse an existing CUDA image. Build only when
+    # the image is absent; preserve volumes and user data.
+    & docker compose down --remove-orphans
+    if ($LASTEXITCODE -ne 0) { throw 'Could not stop existing Compose services.' }
+    & docker image inspect fin-dl-benchmark:cuda12.4 *> $null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host 'CUDA image is not present locally; building it once.'
+        & docker compose build --pull jupyter
+        if ($LASTEXITCODE -ne 0) { throw 'Docker build failed' }
+    } else {
+        Write-Host 'Reusing local image fin-dl-benchmark:cuda12.4.'
+    }
+    & docker compose up -d --force-recreate jupyter
+    if ($LASTEXITCODE -ne 0) { throw 'Could not start the rebuilt Jupyter container.' }
+    $gpuCheck = "import torch; assert torch.cuda.is_available(), 'CUDA unavailable in container'; x=torch.ones(1,device='cuda'); print({'torch':torch.__version__,'cuda':torch.version.cuda,'device':torch.cuda.get_device_name(0),'tensor':x.item()})"
+    & docker compose exec -T jupyter /opt/venv/bin/python -c $gpuCheck
+    if ($LASTEXITCODE -ne 0) { throw 'CUDA preflight failed inside Docker. Check NVIDIA Container Toolkit, Docker GPU support, and the CUDA image.' }
+    $execArgs = @('compose','exec','-T','-e',"GIT_REVISION=$env:GIT_REVISION",'-e',"RUN_ID=$RunId",'-e',"MODELS=$($Models -join ',')",'-e',"SEEDS=$($Seeds -join ',')",'-e',"FOLDS=$($Folds -join ',')",'-e',"DEVICE=gpu",'-e',"RESUME_MODE=$ResumeMode",'-e',"EPOCHS=$Epochs",'-e',"MAX_RETRIES=$MaxRetries",'-e',"ESTIMATE_ONLY=$([int][bool]$EstimateOnly)",'jupyter','bash','./run_all_models.sh')
+    & docker @execArgs
     if ($LASTEXITCODE -ne 0) { throw "Container runner failed with exit code $LASTEXITCODE; inspect $run" }
     $archive = Join-Path $root ("artifacts\$RunId.zip")
     if (-not (Test-Path -LiteralPath $archive)) { throw 'Runner returned success without archive' }
