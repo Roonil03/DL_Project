@@ -110,6 +110,7 @@ class ExperimentRun:
     name: str = "experiment"
     run_id: Optional[str] = None
     resume: bool = False
+    checkpoint_metadata: Mapping[str, Any] = field(default_factory=dict)
     path: Path = field(init=False)
     logger: logging.Logger = field(init=False)
 
@@ -162,7 +163,8 @@ class ExperimentRun:
         os.replace(temporary, target)
         return target
 
-    def load_checkpoint(self, filename: str = "last.pt", map_location: str = "cpu") -> Optional[Dict[str, Any]]:
+    def load_checkpoint(self, filename: str = "last.pt", map_location: str = "cpu",
+                        expected_metadata: Optional[Mapping[str, Any]] = None) -> Optional[Dict[str, Any]]:
         import torch
         target = self.path / "checkpoints" / filename
         candidates = (target, target.with_name(f"previous_{target.name}"))
@@ -172,7 +174,14 @@ class ExperimentRun:
                 continue
             saw_candidate = True
             try:
-                return torch.load(candidate, map_location=map_location, weights_only=False)
+                checkpoint = torch.load(candidate, map_location=map_location, weights_only=False)
+                if not isinstance(checkpoint, dict):
+                    raise ValueError("checkpoint payload must be a mapping")
+                if expected_metadata:
+                    actual = checkpoint.get("metadata")
+                    if not isinstance(actual, Mapping) or any(actual.get(key) != value for key, value in expected_metadata.items()):
+                        raise ValueError("checkpoint metadata does not match this run/fold")
+                return checkpoint
             except Exception as exc:
                 self.event("checkpoint_rejected", path=str(candidate), error=repr(exc))
         if saw_candidate:

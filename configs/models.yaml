@@ -13,3 +13,8 @@ patchtst:
   d_model: 64
   heads: 4
   layers: 2
+ahat_fin:
+  d_model: 64
+  heads: 4
+  layers: 1
+  dropout: 0.1

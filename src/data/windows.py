@@ -22,13 +22,27 @@ def create_rolling_windows(
         y: shape (T - lookback, num_assets) (realized returns at t+1)
         decision_dates: DatetimeIndex corresponding to decision time t
     """
-    T = len(features)
+    features = np.asarray(features)
+    targets = np.asarray(targets)
+    if features.ndim != 2:
+        raise ValueError('features must be a (time, features) array')
+    if targets.ndim not in (1, 2):
+        raise ValueError('targets must be a (time,) or (time, assets) array')
+    if targets.shape[0] != features.shape[0]:
+        raise ValueError('features and targets must have the same time length')
+    if not isinstance(lookback, (int, np.integer)) or isinstance(lookback, bool) or lookback <= 0:
+        raise ValueError('lookback must be a positive integer')
+    if dates is not None and len(dates) != features.shape[0]:
+        raise ValueError('dates must have the same time length as features')
+
+    T = features.shape[0]
     sample_count = T - lookback
 
     if sample_count <= 0:
         # Preserve the historical empty-output behavior for short inputs.
-        X_arr = np.array([], dtype=np.float32)
-        y_arr = np.array([], dtype=np.float32)
+        X_arr = np.empty((0, lookback, features.shape[1]), dtype=np.float32)
+        target_shape = (0,) if targets.ndim == 1 else (0, targets.shape[1])
+        y_arr = np.empty(target_shape, dtype=np.float32)
         decision_dates = pd.DatetimeIndex([]) if dates is not None else None
         return X_arr, y_arr, decision_dates
 

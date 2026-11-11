@@ -1,4 +1,9 @@
-# Final Metrics — benchmark-20261025
+# Final Metrics — full-validation
+
+This local user run covers walk-forward fold 0 only. The recorded test
+decision interval is in 2013, despite calendar split values of 2018/2020 in
+the resolved config. Read `docs/analysis-2026-11-11.md` before comparing or
+citing these scores.
 
 Generated from observed notebook unit outputs. No metrics are imputed.
 
@@ -13,14 +18,16 @@ Generated from observed notebook unit outputs. No metrics are imputed.
 | baseline_zero | 5 | 5 | 1 | 0.0000 | 0.0000 | 0.0000 | 0.0416 | 0.000111 |
 | dlinear | 5 | 5 | 1 | -0.4568 | 0.9983 | 28.0627 | 0.4989 | 0.130059 |
 | lstm | 5 | 5 | 1 | -0.6172 | 1.1431 | 8.5427 | 0.4826 | 0.240953 |
-| mamba | 5 | 5 | 1 | 0.4042 | 0.7156 | 85.2683 | 0.4810 | 0.326572 |
+| mamba | 5 | 5 | 1 | 0.5511 | 0.6568 | 76.6328 | 0.4774 | 0.262322 |
 | patchtst | 5 | 5 | 1 | 0.3800 | 0.7999 | 43.1207 | 0.5098 | 0.370780 |
 
 ## Provenance
 
-Inputs and hashes: metadata/data_manifest.json and metadata/run_manifest.json.
-Per-unit metrics, regimes, returns and predictions: tables/<model>/seed_<seed>/fold_<fold>/.
-Training events and checkpoints: telemetry/ and checkpoints/.
+The provenance files are in the local, gitignored
+`outputs/full-validation/metadata/` directory. Per-unit tables and
+predictions are under `outputs/full-validation/tables/<model>/seed_<seed>/fold_<fold>/`;
+telemetry and checkpoints are in sibling directories. They are not included
+in this Git checkout or PR.
 
 ## Interpretation limits
 

@@ -70,6 +70,7 @@ WORKDIR /home/jovyan/work
 COPY requirements.docker.txt /tmp/requirements.docker.txt
 RUN /opt/venv/bin/pip3 install --no-cache-dir \
         --index-url https://download.pytorch.org/whl/cu124 \
+        --no-deps \
         torch==2.4.1+cu124 \
     && /opt/venv/bin/pip3 install --no-cache-dir --no-build-isolation \
         -r /tmp/requirements.docker.txt \
@@ -108,4 +109,4 @@ WORKDIR /home/jovyan/work
 EXPOSE 8888
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--ServerApp.token=", "--ServerApp.allow_origin=*"]
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser"]

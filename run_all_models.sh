@@ -123,6 +123,7 @@ model(x).square().mean().backward()
 print({"torch":torch.__version__,"cuda":torch.version.cuda,
        "device":torch.cuda.get_device_name(0) if device.type=="cuda" else "cpu"})
 PY
+if [[ ",$MODELS," == *,mamba,* ]]; then
 python - <<'PY'
 import torch
 from src.models.mamba_model import MambaSignalModel
@@ -133,6 +134,7 @@ if torch.cuda.is_available():
     assert y.shape==(2,5) and torch.isfinite(y).all()
 print("Mamba identity and GPU forward/backward verified")
 PY
+fi
 event preflight_complete
 
 python - "$RUN_DIR" "$RUN_ID" "$DEVICE" "$RESUME_MODE" "$EPOCHS" "$MODELS" "$SEEDS" "$FOLDS" "$DATA_DIR" <<'PY'

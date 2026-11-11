@@ -40,11 +40,17 @@ class BaseTrainer:
         start_epoch = 0
         if resume and self.run is not None:
             try:
-                checkpoint = self.run.load_checkpoint(map_location=str(self.device))
+                checkpoint = self.run.load_checkpoint(
+                    map_location=str(self.device),
+                    expected_metadata=getattr(self.run, 'checkpoint_metadata', None),
+                )
             except Exception as exc:
                 self.run.event('checkpoint_rejected', error=repr(exc))
                 raise RuntimeError('Checkpoint is corrupt or incompatible; refusing a silent restart') from exc
             if checkpoint is not None:
+                required = {'epoch', 'model_state', 'optimizer_state'}
+                if not required.issubset(checkpoint) or not isinstance(checkpoint['epoch'], int) or checkpoint['epoch'] < 0:
+                    raise RuntimeError('Checkpoint is missing required training state; refusing a silent restart')
                 self.model.load_state_dict(checkpoint['model_state'])
                 self.optimizer.load_state_dict(checkpoint['optimizer_state'])
                 if self.scheduler is not None and checkpoint.get('scheduler_state') is not None:
@@ -52,6 +58,7 @@ class BaseTrainer:
                 history.update(checkpoint.get('history', {}))
                 best_val_loss = checkpoint.get('best_val_loss', best_val_loss)
                 patience_counter = int(checkpoint.get('early_stopping_counter', 0))
+                best_model_state = checkpoint.get('best_model_state')
                 start_epoch = int(checkpoint.get('epoch', -1)) + 1
                 if checkpoint.get('cpu_rng_state') is not None:
                     torch.set_rng_state(checkpoint['cpu_rng_state'])
@@ -75,24 +82,40 @@ class BaseTrainer:
                 batch_x = batch_x.to(self.device)
                 batch_y = batch_y.to(self.device)
                 samples_seen += int(batch_x.shape[0])
+
+                # Invalid observations must not enter the model: a NaN can
+                # contaminate stateful layers even when the loss is discarded.
+                if not torch.isfinite(batch_x).all() or not torch.isfinite(batch_y).all():
+                    skipped_batches += 1
+                    continue
                 
                 self.optimizer.zero_grad()
                 signals = self.model(batch_x)
                 
                 loss = self.criterion(signals, batch_y)
                 
-                if not torch.isnan(loss) and not torch.isinf(loss):
-                    loss.backward()
-                    if grad_clip > 0:
-                        norm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), grad_clip)
-                        gradient_norms.append(float(norm.detach().cpu()))
-                    self.optimizer.step()
-                    train_loss_accum += loss.item()
-                    num_train_batches += 1
-                else:
+                if not torch.isfinite(loss).all():
                     skipped_batches += 1
+                    continue
+
+                loss.backward()
+                parameters_with_grad = [p for p in self.model.parameters() if p.grad is not None]
+                if not parameters_with_grad or not all(torch.isfinite(p.grad).all() for p in parameters_with_grad):
+                    self.optimizer.zero_grad(set_to_none=True)
+                    skipped_batches += 1
+                    continue
+                if grad_clip > 0:
+                    norm = torch.nn.utils.clip_grad_norm_(parameters_with_grad, grad_clip)
+                    if not torch.isfinite(norm):
+                        self.optimizer.zero_grad(set_to_none=True)
+                        skipped_batches += 1
+                        continue
+                    gradient_norms.append(float(norm.detach().cpu()))
+                self.optimizer.step()
+                train_loss_accum += loss.item()
+                num_train_batches += 1
                 
-            avg_train_loss = train_loss_accum / max(1, num_train_batches)
+            avg_train_loss = train_loss_accum / num_train_batches if num_train_batches else float('nan')
             history['train_loss'].append(avg_train_loss)
             
             if val_loader is not None:
@@ -103,13 +126,15 @@ class BaseTrainer:
                     for batch_x, batch_y in val_loader:
                         batch_x = batch_x.to(self.device)
                         batch_y = batch_y.to(self.device)
+                        if not torch.isfinite(batch_x).all() or not torch.isfinite(batch_y).all():
+                            continue
                         signals = self.model(batch_x)
                         val_loss = self.criterion(signals, batch_y)
-                        if not torch.isnan(val_loss) and not torch.isinf(val_loss):
+                        if torch.isfinite(val_loss).all():
                             val_loss_accum += val_loss.item()
                             num_val_batches += 1
                             
-                avg_val_loss = val_loss_accum / max(1, num_val_batches)
+                avg_val_loss = val_loss_accum / num_val_batches if num_val_batches else float('inf')
                 history['val_loss'].append(avg_val_loss)
                 
                 if self.scheduler is not None:
@@ -155,6 +180,7 @@ class BaseTrainer:
                     'scheduler_state': self.scheduler.state_dict() if self.scheduler is not None else None,
                     'history': history, 'loss_history': history,
                     'best_val_loss': best_val_loss,
+                    'best_model_state': best_model_state,
                     'early_stopping_counter': patience_counter,
                     'cpu_rng_state': torch.get_rng_state(),
                     'cuda_rng_state': torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,

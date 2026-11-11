@@ -3,9 +3,10 @@
 # The Dockerfile installs torch==2.4.1+cu124 from the CUDA 12.4 PyTorch
 # index first. Keep the same exact pin here so a fresh `pip3 install -r` in the
 # container cannot silently replace it with a CPU wheel.
---extra-index-url https://download.pytorch.org/whl/cu124
-
-torch==2.4.1+cu124
+# Torch is installed separately from the official CUDA 12.4 wheel index with
+# --no-deps. The pinned NVIDIA CUDA/cuDNN development base supplies its CUDA
+# runtime libraries; avoiding duplicate 600+ MB pip wheels also avoids
+# substituting a mismatched wheel if an index mirror serves corrupt content.
 numpy==1.26.4
 pandas==2.2.3
 scikit-learn==1.5.2
