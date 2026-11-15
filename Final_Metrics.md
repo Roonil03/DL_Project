@@ -1,9 +1,4 @@
-# Final Metrics — full-validation
-
-This local user run covers walk-forward fold 0 only. The recorded test
-decision interval is in 2013, despite calendar split values of 2018/2020 in
-the resolved config. Read `docs/analysis-2026-11-11.md` before comparing or
-citing these scores.
+# Final Metrics — india-study
 
 Generated from observed notebook unit outputs. No metrics are imputed.
 
@@ -11,23 +6,21 @@ Generated from observed notebook unit outputs. No metrics are imputed.
 
 | Model | Cost bps | Seeds | Folds | Mean Sharpe | SD Sharpe | Mean turnover | Directional accuracy | MSE |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| baseline_equal_weight | 5 | 5 | 1 | -1.5327 | 0.0000 | 7.2317 | 0.4992 | 0.513771 |
-| baseline_long_only | 5 | 5 | 1 | -0.2242 | 0.0000 | 11.9110 | 0.4992 | 1.000333 |
-| baseline_momentum | 5 | 5 | 1 | -1.1534 | 0.0000 | 61.3236 | 0.4672 | 1.000309 |
-| baseline_volatility_managed | 5 | 5 | 1 | -0.1398 | 0.0000 | 12.7349 | 0.4992 | 0.598755 |
-| baseline_zero | 5 | 5 | 1 | 0.0000 | 0.0000 | 0.0000 | 0.0416 | 0.000111 |
-| dlinear | 5 | 5 | 1 | -0.4568 | 0.9983 | 28.0627 | 0.4989 | 0.130059 |
-| lstm | 5 | 5 | 1 | -0.6172 | 1.1431 | 8.5427 | 0.4826 | 0.240953 |
-| mamba | 5 | 5 | 1 | 0.5511 | 0.6568 | 76.6328 | 0.4774 | 0.262322 |
-| patchtst | 5 | 5 | 1 | 0.3800 | 0.7999 | 43.1207 | 0.5098 | 0.370780 |
+| baseline_equal_weight | 5 | 5 | 2 | 1.7026 | 0.4997 | 1.0224 | 0.5475 | 7.304416 |
+| baseline_long_only | 5 | 5 | 2 | 2.3317 | 0.1692 | 18.3798 | 0.3525 | 0.631804 |
+| baseline_momentum | 5 | 5 | 2 | 1.5186 | 0.0647 | 35.5642 | 0.5240 | 0.998529 |
+| baseline_volatility_managed | 5 | 5 | 2 | 1.7957 | 0.5191 | 7.1486 | 0.5475 | 0.997977 |
+| baseline_zero | 5 | 5 | 2 | 0.0000 | 0.0000 | 0.0000 | 0.0007 | 0.000300 |
+| dlinear | 5 | 5 | 2 | 0.3801 | 1.2975 | 22.9383 | 0.5196 | 0.163603 |
+| lstm | 5 | 5 | 2 | -0.2994 | 1.1678 | 5.7618 | 0.5045 | 0.233724 |
+| mamba | 5 | 5 | 2 | -0.1809 | 1.0148 | 14.6974 | 0.5210 | 0.323786 |
+| patchtst | 5 | 5 | 2 | -0.6360 | 0.6702 | 15.7267 | 0.5100 | 0.678600 |
 
 ## Provenance
 
-The provenance files are in the local, gitignored
-`outputs/full-validation/metadata/` directory. Per-unit tables and
-predictions are under `outputs/full-validation/tables/<model>/seed_<seed>/fold_<fold>/`;
-telemetry and checkpoints are in sibling directories. They are not included
-in this Git checkout or PR.
+Inputs and hashes: metadata/data_manifest.json and metadata/run_manifest.json.
+Per-unit metrics, regimes, returns and predictions: tables/<model>/seed_<seed>/fold_<fold>/.
+Training events and checkpoints: telemetry/ and checkpoints/.
 
 ## Interpretation limits
 

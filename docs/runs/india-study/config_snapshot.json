@@ -1,0 +1,144 @@
+{
+  "configs/backtest.yaml": {
+    "allow_short": true,
+    "baselines": {
+      "momentum_lookback": 20,
+      "volatility_lookback": 20
+    },
+    "bootstrap": {
+      "alternative": "greater",
+      "block_size": 20,
+      "num_bootstraps": 1000
+    },
+    "max_leverage": 3.0,
+    "target_volatility": 0.1,
+    "transaction_costs_bps": [
+      0,
+      1,
+      5,
+      10,
+      20
+    ],
+    "walk_forward": {
+      "gap": 0,
+      "initial_train_size": 756,
+      "mode": "expanding",
+      "rolling_train_window": null,
+      "step_size": 126,
+      "test_size": 126
+    }
+  },
+  "configs/data.yaml": {
+    "dataset": "global_indian",
+    "features": [
+      "daily_return",
+      "rolling_volatility_20",
+      "momentum_20"
+    ],
+    "lookback": 20,
+    "split": {
+      "test": "2020-01-01",
+      "train": "2010-01-01",
+      "val": "2018-01-01"
+    }
+  },
+  "configs/fred_sectors.yaml": {
+    "assets": [
+      "NASDAQNQUSB10LMT",
+      "NASDAQNQUSB20LMT",
+      "NASDAQNQUSB30LMT",
+      "NASDAQNQUSB50LMT",
+      "NASDAQNQUSB60LMT"
+    ],
+    "dataset": "fred_sectors",
+    "folds": {
+      "test_years": [
+        2008,
+        2020
+      ],
+      "train_years": 5,
+      "validation_years": 1
+    },
+    "returns": "index_total_return",
+    "source_file": "sector_indices.csv"
+  },
+  "configs/india_indices.yaml": {
+    "assets": [
+      "NIFTY_BANK",
+      "NIFTY_IT",
+      "NIFTY_PHARMA"
+    ],
+    "dataset": "india_indices",
+    "folds": {
+      "test_years": [
+        2020,
+        2023
+      ],
+      "train_years": 5,
+      "validation_years": 1
+    },
+    "returns": "index_price_return",
+    "source_file": "index_list.csv"
+  },
+  "configs/models.yaml": {
+    "ahat_fin": {
+      "d_model": 64,
+      "dropout": 0.1,
+      "heads": 4,
+      "layers": 1
+    },
+    "dlinear": {
+      "trend_window": 20
+    },
+    "lstm": {
+      "dropout": 0.1,
+      "hidden_dim": 64,
+      "layers": 2
+    },
+    "mamba": {
+      "allow_fallback": false,
+      "d_model": 64,
+      "layers": 2
+    },
+    "patchtst": {
+      "d_model": 64,
+      "heads": 4,
+      "layers": 2,
+      "patch_length": 5
+    }
+  },
+  "configs/regime.yaml": {
+    "stress_percentile": 0.95,
+    "trend_window": 120,
+    "volatility_window": 60
+  },
+  "configs/training.yaml": {
+    "batch_size": 64,
+    "checkpoint_every_epoch": true,
+    "device": "auto",
+    "early_stopping_patience": 10,
+    "epochs": 100,
+    "hyperparameter_search": {
+      "learning_rates": [
+        0.001,
+        0.0003
+      ],
+      "max_trials": 2,
+      "metric": "negative_validation_sharpe",
+      "tuning_epochs": 3
+    },
+    "learning_rate": 0.001,
+    "loss_alpha": 1.0,
+    "resume": false,
+    "run_root": "results/runs",
+    "runtime_warmup_batches": 5,
+    "seeds": [
+      42,
+      52,
+      62,
+      72,
+      82
+    ],
+    "telemetry_jsonl": true
+  }
+}

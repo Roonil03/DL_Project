@@ -1,0 +1,9 @@
+{
+  "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "python": "3.11.11",
+  "torch": "2.4.1+cu124",
+  "cuda_available": true,
+  "cuda_runtime": "12.4",
+  "cuda_device": "NVIDIA GeForce RTX 3060 Laptop GPU",
+  "image_identifier": "fin-dl-benchmark:cuda12.4-india1"
+}

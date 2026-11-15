@@ -36,14 +36,17 @@ market series because source close times and execution availability across
 markets remain unverified. Its default five-asset selection therefore cannot
 currently complete a new run.
 
-The planned primary study uses the [Indian market historical dataset](https://github.com/aswinv90/indian-market-historical-data)
+The completed primary `india-study` run uses the [Indian market historical dataset](https://github.com/aswinv90/indian-market-historical-data)
 at pinned commit `1f4aff7c3e53a9f2bfb6a167b0d80f4d0c8f8bf9`
 for NIFTY BANK, IT and PHARMA. Its common daily panel begins in 2011 and
 has 3,675 complete sessions from 31 January 2011 through 31 December 2025,
 including the 2020 crisis. Returns are derived from daily Close prices and exclude
 dividends. The source permits noncommercial academic and personal use. The
 benchmark excludes raw files from archives because redistribution rights for
-the underlying market data are unverified. No new benchmark results are available.
+the underlying market data are unverified. The run completed 40 model/seed/fold
+units on 15 November 2026, testing calendar years 2020 and 2023. The verified
+local archive is `artifacts/india-study.zip` (86,236,936 bytes). See the
+[run review](docs/analysis-2026-11-15.md) for its hash, actual dates and limits.
 
 An optional separate US comparison uses [FRED's Nasdaq US Large/Mid Cap sector
 total-return index panel](https://fred.stlouisfed.org/graph/fredgraph.csv?id=NASDAQNQUSB10LMT,NASDAQNQUSB20LMT,NASDAQNQUSB30LMT,NASDAQNQUSB50LMT,NASDAQNQUSB60LMT):
@@ -53,7 +56,7 @@ with 6,518 complete trading rows and 168 all-missing holiday rows shared by
 all series, with no partially missing rows. It contains 253 complete rows in
 2008 and 257 in 2020. Returns are derived from percentage changes in index
 levels. These are indices, not tradable ETFs. Nasdaq
-claims copyright and requires pre-approval for redistribution. No sector
+claims copyright and requires pre-approval for redistribution. No US sector
 benchmark has been run or results reported.
 
 These are separate studies: the US panel is not a worldwide market sample.
@@ -92,28 +95,25 @@ report its own seeds, dates, sample sizes, and uncertainty.
 | Regime robustness | Sharpe, return, volatility, drawdown, sample count, and confidence interval for each volatility/trend regime; stress-regime degradation and rank stability. |
 | Compute and reliability | Parameter count, epoch duration, throughput, GPU memory/utilization, retry count, checkpoint/resume outcome, and failure timeline. |
 
-### Historical benchmark snapshot
+### Completed Indian sector study
 
-The following values come from the completed `full-validation` run of
-11 November 2026, before the later methodology audit. They represent one
-walk-forward fold, with 125 decision dates from 18 February to 9 August 2013. They
-use a 5 bps transaction-cost assumption, one evaluation fold, and five seeds;
-the Sharpe standard deviation is across seeds.
+At 5 bps, mean Sharpe across five seeds and two test years is 0.3801 for
+DLinear, -0.2994 for LSTM, -0.1809 for Mamba and -0.6360 for PatchTST. The
+long/cash 20-session trend baseline averages 2.3317 and exceeds every neural
+seed in each year. DLinear's yearly means change from 1.4300 in 2020 to -0.6698
+in 2023. This run does not establish a stable neural advantage.
 
-| Model | Mean Sharpe | SD Sharpe | Mean turnover | Directional accuracy | MSE |
-|---|---:|---:|---:|---:|---:|
-| DLinear | -0.4568 | 0.9983 | 28.0627 | 0.4989 | 0.130059 |
-| LSTM | -0.6172 | 1.1431 | 8.5427 | 0.4826 | 0.240953 |
-| Mamba | 0.5511 | 0.6568 | 76.6328 | 0.4774 | 0.262322 |
-| PatchTST | 0.3800 | 0.7999 | 43.1207 | 0.5098 | 0.370780 |
+The [generated metrics](Final_Metrics.md) are preserved verbatim. Their standard
+deviations mix seed and year variation and are not confidence intervals. MSE
+compares trading signals with returns, not calibrated return forecasts. Repeated
+baseline seeds and pooled regime counts do not create independent market days.
+Read the [full review](docs/analysis-2026-11-15.md) and
+[small evidence subset](docs/runs/india-study/) before citing these results.
 
-These are historical backtest statistics, not investment advice. Interpret
-them together with regime sample sizes, confidence intervals, costs, signal
-timing, data quality, and the reproducibility manifest. The full generated
-report is available in [`Final_Metrics.md`](Final_Metrics.md).
-See [`docs/analysis-2026-11-11.md`](docs/analysis-2026-11-11.md) for the
-actual evaluation dates, provenance checks, cost sensitivity, and archive
-limitations. The date-split settings in the config do not describe fold 0.
+The earlier 2013 mixed-market fold and its limitations are retained in the
+[historical review](docs/archive/full-validation/analysis-2026-11-11.md) and
+[historical metrics](docs/archive/full-validation/Final_Metrics.md). Its rankings
+must not be pooled with the Indian sector study.
 
 ## Information documents
 
@@ -136,7 +136,8 @@ fees, dependency lock, and complete run archive.
   validating outputs, and creating the portable ZIP archive.
 - [DOCKER.md](DOCKER.md) — pinned CUDA image, dependency, and GPU preflight
   details.
-- [Final_Metrics.md](Final_Metrics.md) — metrics from the completed benchmark
-  run.
+- [Final_Metrics.md](Final_Metrics.md) — exact generated India run metrics.
+- [docs/analysis-2026-11-15.md](docs/analysis-2026-11-15.md) — verified archive,
+  dates, baselines, uncertainty, tuning, compute and interpretation.
 - [docs/audit-summary.md](docs/audit-summary.md) — methodology changes,
   remaining market-timing restriction, and verification limits.

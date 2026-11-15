@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "timestamp_utc": "2026-11-15T07:13:16.093172+00:00",
+  "run_id": "india-study",
+  "git_revision": "0645123b7256d95ff61bfb2a432e33110788e240",
+  "device": "gpu",
+  "resume_mode": "auto",
+  "epochs": 100,
+  "models": [
+    "dlinear",
+    "lstm",
+    "mamba",
+    "patchtst"
+  ],
+  "seeds": [
+    42,
+    52,
+    62,
+    72,
+    82
+  ],
+  "folds": [
+    "0",
+    "1"
+  ],
+  "data_files": [
+    {
+      "name": "NIFTY_BANK.parquet",
+      "bytes": 232801,
+      "sha256": "cb19fc783ac88fd0f57be97dab2b615a5be5bb86659925315170bb47deb7795c"
+    },
+    {
+      "name": "NIFTY_IT.parquet",
+      "bytes": 225519,
+      "sha256": "281106003c13169a69f91c9cb0709169bea5663cf04b2c733e6abafceb751aab"
+    },
+    {
+      "name": "NIFTY_PHARMA.parquet",
+      "bytes": 204953,
+      "sha256": "71e517166f82e12a0a2740222d34d47d10d4a2b104c940636762bd09a6bd3ded"
+    },
+    {
+      "name": "index_list.csv",
+      "bytes": 1575,
+      "sha256": "c164b2e1ce9cef2df67f98ee695b25684cc6be360a0999465f0a283260ba5292"
+    }
+  ],
+  "dataset_mode": "india_indices"
+}
