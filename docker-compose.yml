@@ -42,6 +42,7 @@ services:
       # Live notebook and source editing from the host checkout.
       - ./notebooks:/home/jovyan/work/notebooks:rw
       - ./src:/home/jovyan/work/src:ro
+      - ./scripts:/home/jovyan/work/scripts:ro
       - ./tests:/home/jovyan/work/tests:ro
       - ./run_all_models.sh:/home/jovyan/work/run_all_models.sh:ro
       # Configs are inputs for a run; keep them read-only in the container.

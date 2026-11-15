@@ -96,6 +96,7 @@ COPY --chown=jovyan:jovyan configs/ ./configs/
 COPY --chown=jovyan:jovyan src/ ./src/
 COPY --chown=jovyan:jovyan notebooks/ ./notebooks/
 COPY --chown=jovyan:jovyan tests/ ./tests/
+COPY --chown=jovyan:jovyan scripts/ ./scripts/
 COPY --chown=jovyan:jovyan run_all_models.sh ./run_all_models.sh
 COPY --chown=jovyan:jovyan README.md RunningNotebooks.md DOCKER.md ./
 

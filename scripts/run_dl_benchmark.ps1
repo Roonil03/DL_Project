@@ -1,7 +1,8 @@
 #requires -Version 5.1
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [Parameter(Mandatory = $true)][string]$DatasetPath,
+    [string]$DatasetPath = '',
+    [ValidateSet('global_indian','french_industry')][string]$DatasetMode = 'global_indian',
     [ValidateSet('dlinear','lstm','mamba','patchtst','ahat_fin')][string[]]$Models = @('dlinear','lstm','mamba','patchtst'),
     [ValidateSet('gpu')][string]$Device = 'gpu',
     [int[]]$Seeds = @(42,52,62,72,82),
@@ -23,14 +24,19 @@ if ($RunId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$' -or $RunId.Contains('..')) {
 if ($Epochs -lt 1 -or $MaxRetries -lt 0 -or $Seeds.Count -eq 0 -or $Folds.Count -eq 0) { throw 'Epochs and seed/fold lists must be positive; retries cannot be negative.' }
 if ($Folds | Where-Object { $_ -lt 0 }) { throw 'Fold IDs must be nonnegative.' }
 if ($ForceFresh) { $ResumeMode = 'restart' }
-$data = (Resolve-Path -LiteralPath $DatasetPath -ErrorAction Stop).Path
-foreach ($name in @('daily_market_data.csv','monthly_macro_data.csv','codes_and_sources.md')) {
-    $file = Join-Path $data $name
-    if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing $file. Obtain and verify the local Kaggle dataset before running; this script never downloads data." }
-    if ((Get-Item -LiteralPath $file).Length -eq 0) { throw "Empty dataset input: $file" }
+if (-not $DatasetPath) {
+    if ($DatasetMode -eq 'french_industry') { $DatasetPath = 'data\french_industry' }
+    else { $DatasetPath = 'data\kaggle_global_indian_markets\global-india-markets-macro' }
 }
-$expected = (Join-Path $root 'data\kaggle_global_indian_markets\global-india-markets-macro')
-if ([IO.Path]::GetFullPath($data) -ne [IO.Path]::GetFullPath($expected)) { throw "The mounted notebook audit reads $expected. Place the verified files there, then pass that directory as DatasetPath." }
+$data = (Resolve-Path -LiteralPath $DatasetPath -ErrorAction Stop).Path
+$requiredFiles = if ($DatasetMode -eq 'french_industry') { @('10_Industry_Portfolios_daily_CSV.zip') } else { @('daily_market_data.csv','monthly_macro_data.csv','codes_and_sources.md') }
+foreach ($name in $requiredFiles) {
+    $file = Join-Path $data $name
+    if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or (Get-Item -LiteralPath $file).Length -eq 0) { throw "Missing or empty dataset input: $file" }
+}
+$dataRoot = [IO.Path]::GetFullPath((Join-Path $root 'data'))
+if (-not $data.StartsWith($dataRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'DatasetPath must be under the repository data directory mounted into Docker.' }
+$containerData = '/home/jovyan/work/data/' + $data.Substring($dataRoot.Length + 1).Replace('\','/')
 $output = [IO.Path]::GetFullPath((Join-Path $root $OutputRoot))
 if (-not $output.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'OutputRoot must be inside the repository.' }
 if ($OutputRoot -ne 'outputs') { throw 'The existing Compose mount supports OutputRoot=outputs only.' }
@@ -46,13 +52,13 @@ $plan = @{
     estimate_only=[bool]$EstimateOnly; checkpoint_archive=[bool]$PackageCheckpoints
 }
 Write-Host ('Planned run: ' + ($plan | ConvertTo-Json -Compress -Depth 5))
-Write-Host 'Commands: docker compose down --remove-orphans; docker compose build --pull --no-cache jupyter; docker compose up -d --force-recreate jupyter; GPU preflight; execute runner in running container.'
+Write-Host 'Commands: reuse local image or build if absent; start Compose service; GPU preflight; execute runner.'
 Write-Host 'Estimate: prior telemetry is required for a numeric forecast; ESTIMATE_ONLY=1 runs one measured epoch per selected model.'
 if ($WhatIfPreference) { return }
 if (-not $PSCmdlet.ShouldProcess($run, 'Build CUDA container, verify GPU access, and run benchmark in Docker')) { return }
 New-Item -ItemType Directory -Path $output -Force | Out-Null
 $preflight = Join-Path $output ($RunId + '.preflight.json')
-$files = @('daily_market_data.csv','monthly_macro_data.csv','codes_and_sources.md') | ForEach-Object {
+$files = $requiredFiles | ForEach-Object {
     $p = Join-Path $data $_
     @{name=$_; bytes=(Get-Item -LiteralPath $p).Length; sha256=(Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant()}
 }
@@ -62,8 +68,6 @@ $env:GIT_REVISION = (& git rev-parse HEAD).Trim()
 try {
     # Stop stale containers and reuse an existing CUDA image. Build only when
     # the image is absent; preserve volumes and user data.
-    & docker compose down --remove-orphans
-    if ($LASTEXITCODE -ne 0) { throw 'Could not stop existing Compose services.' }
     & docker image inspect fin-dl-benchmark:cuda12.4 *> $null
     if ($LASTEXITCODE -ne 0) {
         Write-Host 'CUDA image is not present locally; building it once.'
@@ -72,32 +76,16 @@ try {
     } else {
         Write-Host 'Reusing local image fin-dl-benchmark:cuda12.4.'
     }
-    & docker compose up -d --force-recreate jupyter
+    & docker compose up -d jupyter
     if ($LASTEXITCODE -ne 0) { throw 'Could not start the rebuilt Jupyter container.' }
     $gpuCheck = "import torch; assert torch.cuda.is_available(), 'CUDA unavailable in container'; x=torch.ones(1,device='cuda'); print({'torch':torch.__version__,'cuda':torch.version.cuda,'device':torch.cuda.get_device_name(0),'tensor':x.item()})"
     & docker compose exec -T jupyter /opt/venv/bin/python -c $gpuCheck
     if ($LASTEXITCODE -ne 0) { throw 'CUDA preflight failed inside Docker. Check NVIDIA Container Toolkit, Docker GPU support, and the CUDA image.' }
-    $execArgs = @('compose','exec','-T','-e',"GIT_REVISION=$env:GIT_REVISION",'-e',"RUN_ID=$RunId",'-e',"MODELS=$($Models -join ',')",'-e',"SEEDS=$($Seeds -join ',')",'-e',"FOLDS=$($Folds -join ',')",'-e',"DEVICE=gpu",'-e',"RESUME_MODE=$ResumeMode",'-e',"EPOCHS=$Epochs",'-e',"MAX_RETRIES=$MaxRetries",'-e',"ESTIMATE_ONLY=$([int][bool]$EstimateOnly)",'jupyter','bash','./run_all_models.sh')
+    $execArgs = @('compose','exec','-T','-e',"GIT_REVISION=$env:GIT_REVISION",'-e',"RUN_ID=$RunId",'-e',"MODELS=$($Models -join ',')",'-e',"SEEDS=$($Seeds -join ',')",'-e',"FOLDS=$($Folds -join ',')",'-e',"DEVICE=gpu",'-e',"RESUME_MODE=$ResumeMode",'-e',"EPOCHS=$Epochs",'-e',"MAX_RETRIES=$MaxRetries",'-e',"ESTIMATE_ONLY=$([int][bool]$EstimateOnly)",'-e',"DATASET_MODE=$DatasetMode",'-e',"DATA_DIR=$containerData",'-e',"PACKAGE_CHECKPOINTS=$([int][bool]$PackageCheckpoints)",'jupyter','bash','./run_all_models.sh')
     & docker @execArgs
     if ($LASTEXITCODE -ne 0) { throw "Container runner failed with exit code $LASTEXITCODE; inspect $run" }
     $archive = Join-Path $root ("artifacts\$RunId.zip")
     if (-not (Test-Path -LiteralPath $archive)) { throw 'Runner returned success without archive' }
-    if (-not $PackageCheckpoints) {
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        $tmp = $archive + '.filtered'
-        $source = [IO.Compression.ZipFile]::OpenRead($archive)
-        $dest = [IO.Compression.ZipFile]::Open($tmp, [IO.Compression.ZipArchiveMode]::Create)
-        try {
-            foreach ($entry in $source.Entries) {
-                if ($entry.FullName -match '/checkpoints/' -or $entry.FullName -match '/\.env') { continue }
-                $copy = $dest.CreateEntry($entry.FullName, [IO.Compression.CompressionLevel]::Optimal)
-                if ($entry.Length -eq 0) { continue }
-                $inStream = $entry.Open(); $outStream = $copy.Open()
-                try { $inStream.CopyTo($outStream) } finally { $inStream.Dispose(); $outStream.Dispose() }
-            }
-        } finally { $source.Dispose(); $dest.Dispose() }
-        Move-Item -LiteralPath $tmp -Destination $archive -Force
-    }
     Write-Host "Completed archive: $archive"
     Write-Host "Manifest: $(Join-Path $run 'bundle_manifest.json')"
     Write-Host "Data hashes: $preflight"
