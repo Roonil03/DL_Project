@@ -1,6 +1,6 @@
 # Notebooks
 
-> **Current data restriction:** The benchmark rejects selected price series with
+> **Global Indian data restriction:** The benchmark rejects selected price series with
 > missing values and rejects multiple market series until close timestamps and
 > execution availability have been verified. The default five-asset selection
 > therefore cannot currently complete. Review the data and select an eligible

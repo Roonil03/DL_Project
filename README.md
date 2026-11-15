@@ -29,8 +29,8 @@ The existing model credits for this group project are:
 
 ## Dataset and current status
 
-The original benchmark uses the Kaggle data described below. The current runner
-rejects selected price series with missing values and selections of multiple
+The original benchmark uses the Kaggle data described below. In that dataset
+mode the current runner rejects selected price series with missing values and selections of multiple
 market series because source close times and execution availability across
 markets remain unverified. Its default five-asset selection therefore cannot
 currently complete a new run.
