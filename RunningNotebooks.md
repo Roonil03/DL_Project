@@ -167,7 +167,8 @@ falls back to CPU.
 | `PACKAGE_CHECKPOINTS` | `1` | Set to `0` to omit checkpoints from the ZIP; PowerShell uses `-ExcludeCheckpoints`. |
 | `ESTIMATE_ONLY` | `0` | Set to `1` for a measured one-epoch GPU timing pilot. |
 
-Examples from Git Bash/WSL:
+Examples from Git Bash/WSL (the CPU smoke test is for development checks,
+not the full GPU benchmark):
 
 ```bash
 DATASET_MODE=french_industry RUN_ID=pilot ESTIMATE_ONLY=1 ./run_all_models.sh
