@@ -12,7 +12,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: fin-dl-benchmark:cuda12.4
+    image: fin-dl-benchmark:cuda12.4-india1
     container_name: fin-dl-benchmark-jupyter
     working_dir: /home/jovyan/work
     user: "1000:1000"

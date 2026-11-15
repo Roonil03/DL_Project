@@ -19,13 +19,16 @@ def digest(path):
     return h.hexdigest()
 
 
-def resolve_french_folds(config_path, requested=''):
+def resolve_fred_folds(config_path, requested='', *, mode='fred_sectors'):
     """Validate the same configuration as the notebooks and resolve fold IDs."""
     import yaml
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from src.data.french_benchmark import validate_french_config
+    if mode == 'india_indices':
+        from src.data.india_benchmark import validate_india_config as validate_config
+    else:
+        from src.data.fred_benchmark import validate_fred_config as validate_config
 
-    config = validate_french_config(yaml.safe_load(Path(config_path).read_text(encoding='utf-8')))
+    config = validate_config(yaml.safe_load(Path(config_path).read_text(encoding='utf-8')))
     count = len(config['folds']['test_years'])
     if not requested:
         return list(range(count))
@@ -46,7 +49,7 @@ def identity(root, data, options):
                 files[path.relative_to(root).as_posix()] = digest(path)
     for name in ('run_all_models.sh', 'Dockerfile', 'docker-compose.yml', 'requirements.docker.txt', 'requirements.mamba-compat.txt'):
         files[name] = digest(root / name)
-    for name in dataset_files(options.get('dataset_mode', 'global_indian')):
+    for name in dataset_files(options.get('dataset_mode', 'india_indices')):
         rel = Path(name)
         if safe_file(data, rel):
             files['data/' + name] = digest(data / rel)
@@ -69,9 +72,11 @@ def check_identity(run, value):
 # Only the documented dataset inputs may be distributed when explicitly requested.
 DATASET_INPUTS = {
     'global_indian': ('daily_market_data.csv', 'monthly_macro_data.csv', 'codes_and_sources.md'),
-    'french_industry': ('10_Industry_Portfolios_daily_CSV.zip', '10_Industry_Portfolios_daily_CSV.manifest.json'),
+    'fred_sectors': ('sector_indices.csv', 'sector_indices.manifest.json'),
+    'india_indices': ('NIFTY_BANK.parquet', 'NIFTY_IT.parquet', 'NIFTY_PHARMA.parquet', 'index_list.csv'),
 }
-DATASET_FILES = tuple(name for names in DATASET_INPUTS.values() for name in names)
+# Dataset licenses and upstream rights vary; never package raw inputs.
+DATASET_FILES = ()
 
 
 def dataset_files(mode):
@@ -122,10 +127,7 @@ def bundle(run, destination, include_checkpoints=True, data=None):
             continue
         files.append((path, (Path(run.name) / rel).as_posix()))
     if data:
-        for name in DATASET_FILES:
-            rel = Path(name)
-            if safe_file(data, rel):
-                files.append((data / rel, (Path('dataset') / rel).as_posix()))
+        raise ValueError('Raw dataset packaging is disabled')
     entries = [{'path': name, 'bytes': path.stat().st_size, 'sha256': digest(path)} for path, name in files]
     manifest = json.dumps({'schema_version': '1.0', 'files': entries}, indent=2, sort_keys=True) + '\n'
     (run / 'bundle_manifest.json').write_text(manifest, encoding='utf-8')
@@ -156,8 +158,8 @@ def bundle(run, destination, include_checkpoints=True, data=None):
 def main():
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest='command', required=True)
-    folds = sub.add_parser('french-folds')
-    folds.add_argument('config'); folds.add_argument('requested', nargs='?', default='')
+    folds = sub.add_parser('fred-folds')
+    folds.add_argument('config'); folds.add_argument('requested', nargs='?', default=''); folds.add_argument('--mode', choices=['fred_sectors','india_indices'], default='fred_sectors')
     ident = sub.add_parser('identity')
     for arg in ('root', 'data', 'run', 'options'):
         ident.add_argument(arg)
@@ -167,8 +169,8 @@ def main():
     pack.add_argument('run'); pack.add_argument('destination')
     pack.add_argument('--exclude-checkpoints', action='store_true'); pack.add_argument('--data')
     args = parser.parse_args()
-    if args.command == 'french-folds':
-        print(','.join(map(str, resolve_french_folds(args.config, args.requested))))
+    if args.command == 'fred-folds':
+        print(','.join(map(str, resolve_fred_folds(args.config, args.requested, mode=args.mode))))
     elif args.command == 'identity':
         check_identity(Path(args.run), identity(Path(args.root), Path(args.data), json.loads(args.options)))
     elif args.command == 'snapshot':

@@ -1,0 +1,8 @@
+dataset: fred_sectors
+source_file: sector_indices.csv
+assets: [NASDAQNQUSB10LMT, NASDAQNQUSB20LMT, NASDAQNQUSB30LMT, NASDAQNQUSB50LMT, NASDAQNQUSB60LMT]
+returns: index_total_return
+folds:
+  test_years: [2008, 2020]
+  train_years: 5
+  validation_years: 1

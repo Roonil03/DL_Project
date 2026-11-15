@@ -1,4 +1,4 @@
-"""Prepare French-industry data and calendar folds for notebook benchmarks."""
+"""Prepare FRED sector data and calendar folds for notebook benchmarks."""
 from __future__ import annotations
 
 import numpy as np
@@ -9,21 +9,21 @@ from src.data.scaling import TimeSeriesScaler
 from src.data.walk_forward import calendar_crisis_folds
 from src.data.windows import create_rolling_windows
 from src.regimes.rules import detect_regimes
-from src.data.french_industry import ASSETS
+from src.data.fred_sectors import ASSETS
 
 
-def validate_french_config(config):
-    if not isinstance(config, dict) or config.get('dataset') != 'french_industry':
-        raise ValueError('French config must name dataset french_industry')
-    if config.get('source_file') != '10_Industry_Portfolios_daily_CSV.zip' or config.get('returns') != 'decimal_daily_value_weighted':
-        raise ValueError('Unsupported French source file or return type')
+def validate_fred_config(config):
+    if not isinstance(config, dict) or config.get('dataset') != 'fred_sectors':
+        raise ValueError('FRED config must name dataset fred_sectors')
+    if config.get('source_file') != 'sector_indices.csv' or config.get('returns') != 'index_total_return':
+        raise ValueError('Unsupported FRED source file or return type')
     assets = config.get('assets')
     if (not isinstance(assets, list) or not assets or any(not isinstance(a, str) for a in assets)
             or len(set(assets)) != len(assets) or not set(assets).issubset(ASSETS)):
-        raise ValueError('French config assets must be a unique nonempty list of known industries')
+        raise ValueError('FRED config assets must be a unique nonempty list of known industries')
     folds = config.get('folds')
     if not isinstance(folds, dict):
-        raise ValueError('French config must contain folds')
+        raise ValueError('FRED config must contain folds')
     years = folds.get('test_years')
     if (not isinstance(years, list) or not years or
             any(not isinstance(y, int) or isinstance(y, bool) or not 1926 <= y <= 2100 for y in years) or
@@ -34,11 +34,11 @@ def validate_french_config(config):
     return config
 
 
-def prepare_french_benchmark(raw_returns, assets, fold, lookback, *, config):
-    config = validate_french_config(config)
+def prepare_fred_benchmark(raw_returns, assets, fold, lookback, *, config):
+    config = validate_fred_config(config)
     missing = sorted(set(assets) - set(raw_returns.columns))
     if missing or not assets or len(set(assets)) != len(assets) or not set(assets).issubset(config['assets']):
-        raise ValueError(f"Invalid French industry asset selection: {missing}")
+        raise ValueError(f"Invalid FRED sector asset selection: {missing}")
     fold_config = config['folds']
     test_years = fold_config['test_years']
     if not isinstance(fold, int) or isinstance(fold, bool) or fold < 0 or fold >= len(test_years):
@@ -56,8 +56,11 @@ def prepare_french_benchmark(raw_returns, assets, fold, lookback, *, config):
     warmup = 60 + lookback + 121
     returns = raw_returns.iloc[max(0, start_pos - warmup):end_pos].loc[:, assets]
     features, returns, vol, _ = build_features_from_returns(returns)
-    # Each decision at the US close uses returns through that close; the target
-    # is the next observed trading day's return.
+    # Lag signals and sizing by one observed session: data at the decision
+    # close cannot be used to execute at that same close.
+    features = features.shift(1).dropna()
+    vol = vol.shift(1).loc[features.index]
+    returns = returns.loc[features.index]
     _, _, decisions = create_rolling_windows(features.to_numpy(), returns.to_numpy(), lookback, features.index)
     target_dates = features.index[lookback:]
     indices = calendar_crisis_folds(decisions, target_dates, test_years=(test_years[fold],),
@@ -72,7 +75,7 @@ def prepare_french_benchmark(raw_returns, assets, fold, lookback, *, config):
     scaler.fit(features.loc[train_decisions].to_numpy())
     X, y, decisions_scaled = create_rolling_windows(scaler.transform(features.to_numpy()), returns.to_numpy(), lookback, features.index)
     assert decisions_scaled.equals(decisions)
-    # These are cumulative research-return indices solely for regime labels.
+    # These reconstructed index levels are solely for regime labels.
     # Their levels do not represent actual traded prices.
     wealth = (1 + raw_returns.iloc[max(0, start_pos - warmup):end_pos].loc[:, assets]).cumprod()
     first_train = wealth.index.get_indexer([train_decisions.min()])[0]

@@ -1,8 +1,0 @@
-dataset: french_industry
-source_file: 10_Industry_Portfolios_daily_CSV.zip
-assets: [NoDur, Durbl, Manuf, Enrgy, HiTec, Telcm, Shops, Hlth, Utils, Other]
-returns: decimal_daily_value_weighted
-folds:
-  test_years: [2008, 2020]
-  train_years: 5
-  validation_years: 1
