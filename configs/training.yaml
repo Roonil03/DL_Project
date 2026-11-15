@@ -11,7 +11,7 @@ checkpoint_every_epoch: true
 telemetry_jsonl: true
 runtime_warmup_batches: 5
 hyperparameter_search:
-  metric: "validation_mse"
+  metric: "negative_validation_sharpe"
   max_trials: 2
   tuning_epochs: 3
   learning_rates: [0.001, 0.0003]

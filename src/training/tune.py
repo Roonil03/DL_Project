@@ -110,3 +110,44 @@ def run_validation_tuning(full_train_val_df, model_class, criterion_factory, con
     print("=" * 50)
     
     return best_hyperparameters, best_model_state
+
+def bounded_model_candidates(model_name, models_config, learning_rates, max_trials=2):
+    """Return at most two comparable validation candidates, with one architecture change.
+
+    Candidate zero uses the configured architecture. Candidate one halves one
+    model-specific width (subject to its attention head count) and uses the
+    second learning rate. Test data must not be passed to selection.
+    """
+    import copy
+    if max_trials < 1 or not learning_rates:
+        raise ValueError('max_trials and learning_rates must be nonempty')
+    fields = {'dlinear': 'trend_window', 'lstm': 'hidden_dim',
+              'mamba': 'd_model', 'patchtst': 'd_model', 'ahat_fin': 'd_model'}
+    if model_name not in fields:
+        raise ValueError(f'unknown model: {model_name}')
+    baseline = copy.deepcopy(models_config)
+    candidates = [{'learning_rate': float(learning_rates[0]), 'models': baseline}]
+    if max_trials > 1:
+        variant = copy.deepcopy(models_config)
+        cfg = variant[model_name]
+        field = fields[model_name]
+        value = int(cfg[field])
+        if field == 'trend_window':
+            # Moving-average decomposition requires a positive odd kernel.
+            candidate = max(1, value // 2)
+            cfg[field] = candidate if candidate % 2 else candidate + 1
+        elif model_name in ('patchtst', 'ahat_fin'):
+            heads = int(cfg['heads'])
+            cfg[field] = max(heads, (value // (2 * heads)) * heads)
+        else:
+            cfg[field] = max(1, value // 2)
+        candidates.append({'learning_rate': float(learning_rates[min(1, len(learning_rates)-1)]), 'models': variant})
+    return candidates
+
+
+def select_validation_candidate(trials):
+    """Select the smallest finite negative validation Sharpe, never test metrics."""
+    valid = [trial for trial in trials if np.isfinite(trial['negative_validation_sharpe'])]
+    if not valid:
+        raise ValueError('no finite validation scores')
+    return min(valid, key=lambda trial: trial['negative_validation_sharpe'])

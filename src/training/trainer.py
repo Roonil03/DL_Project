@@ -78,7 +78,12 @@ class BaseTrainer:
             gradient_norms = []
             samples_seen = 0
             
-            for batch_x, batch_y in train_loader:
+            for batch in train_loader:
+                batch_x, batch_y, *extras = batch
+                extras = [value.to(self.device) for value in extras]
+                if batch_x.shape[0] < 2 and getattr(self.criterion, 'requires_multiple_observations', False):
+                    skipped_batches += 1
+                    continue
                 batch_x = batch_x.to(self.device)
                 batch_y = batch_y.to(self.device)
                 samples_seen += int(batch_x.shape[0])
@@ -92,7 +97,7 @@ class BaseTrainer:
                 self.optimizer.zero_grad()
                 signals = self.model(batch_x)
                 
-                loss = self.criterion(signals, batch_y)
+                loss = self.criterion(signals, batch_y, *extras)
                 
                 if not torch.isfinite(loss).all():
                     skipped_batches += 1
@@ -122,18 +127,30 @@ class BaseTrainer:
                 self.model.eval()
                 val_loss_accum = 0.0
                 num_val_batches = 0
+                validation_outputs = []
                 with torch.no_grad():
-                    for batch_x, batch_y in val_loader:
+                    for batch in val_loader:
+                        batch_x, batch_y, *extras = batch
+                        extras = [value.to(self.device) for value in extras]
                         batch_x = batch_x.to(self.device)
                         batch_y = batch_y.to(self.device)
                         if not torch.isfinite(batch_x).all() or not torch.isfinite(batch_y).all():
                             continue
                         signals = self.model(batch_x)
-                        val_loss = self.criterion(signals, batch_y)
+                        if getattr(self.criterion, 'requires_multiple_observations', False):
+                            validation_outputs.append((signals, batch_y, *extras))
+                            continue
+                        val_loss = self.criterion(signals, batch_y, *extras)
                         if torch.isfinite(val_loss).all():
                             val_loss_accum += val_loss.item()
                             num_val_batches += 1
                             
+                if validation_outputs:
+                    combined = [torch.cat(values, dim=0) for values in zip(*validation_outputs)]
+                    if combined[0].shape[0] >= 2:
+                        val_loss = self.criterion(*combined)
+                        if torch.isfinite(val_loss).all():
+                            val_loss_accum, num_val_batches = val_loss.item(), 1
                 avg_val_loss = val_loss_accum / num_val_batches if num_val_batches else float('inf')
                 history['val_loss'].append(avg_val_loss)
                 
