@@ -2,15 +2,17 @@
 
 > **Global Indian data restriction:** The benchmark rejects selected price series with
 > missing values and rejects multiple market series until close timestamps and
-> execution availability have been verified. The default five-asset selection
+> execution availability have been verified. The legacy mode's default five-asset selection
 > therefore cannot currently complete. Review the data and select an eligible
-> series before executing. French notebook mode is described in
-> [RunningNotebooks.md](RunningNotebooks.md#french-industry-data-and-notebook-mode).
+> series before executing. Indian sector mode is described in
+> [RunningNotebooks.md](RunningNotebooks.md#indian-sector-data).
 
 The benchmark image is pinned to CUDA 12.4, Python 3.11, and a CUDA-enabled
 PyTorch build. `uv` installs the interpreter and creates `/opt/venv`; all
 project packages are installed with `/opt/venv/bin/pip3`. Conda and the Mamba
 environment manager are not used (`mamba-ssm` is the model library).
+The image tag is `fin-dl-benchmark:cuda12.4-india1`; an older image tag does
+not satisfy the runner's image check.
 
 ## Host requirements
 
@@ -22,7 +24,7 @@ environment manager are not used (`mamba-ssm` is the model library).
 ## Run
 
 ```bash
-DATASET_MODE=french_industry FOLDS= ./run_all_models.sh
+DATASET_MODE=india_indices FOLDS= ./run_all_models.sh
 ```
 
 When invoked on the host, the script checks the Docker daemon, reuses the
@@ -34,14 +36,14 @@ report generation, checksums, and ZIP integrity checks.
 Common overrides:
 
 ```bash
-DATASET_MODE=french_industry RUN_ID=pilot ESTIMATE_ONLY=1 ./run_all_models.sh
-DATASET_MODE=french_industry RUN_ID=smoke MODELS=dlinear,lstm SEEDS=42 FOLDS=0 EPOCHS=2 ./run_all_models.sh
-DATASET_MODE=french_industry RUN_ID=full DEVICE=gpu RESUME_MODE=auto MAX_RETRIES=2 ./run_all_models.sh
+DATASET_MODE=india_indices RUN_ID=pilot ESTIMATE_ONLY=1 ./run_all_models.sh
+DATASET_MODE=india_indices RUN_ID=smoke MODELS=dlinear,lstm SEEDS=42 FOLDS=0 EPOCHS=2 ./run_all_models.sh
+DATASET_MODE=india_indices RUN_ID=full DEVICE=gpu RESUME_MODE=auto MAX_RETRIES=2 ./run_all_models.sh
 ```
 
 `DEVICE=gpu` fails fast when CUDA is unavailable. CPU use must be explicit with
 `DEVICE=cpu`. `RESUME_MODE` is `auto`, `restart`, or `fail`. Raw data is omitted
-from the final ZIP unless `INCLUDE_DATA=1` is set. Checkpoints are included
+from the final ZIP; `INCLUDE_DATA=1` is rejected. Checkpoints are included
 by default; `PACKAGE_CHECKPOINTS=0` excludes them.
 
 JupyterLab is available separately with:

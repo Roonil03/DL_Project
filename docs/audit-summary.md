@@ -14,11 +14,16 @@ The mixed-market restriction remains: the source close timestamps and the
 time at which each market's data can be used for execution have not been
 verified. Calendar-date alignment alone does not establish that information
 was available at the decision time. The default five-asset selection is
-therefore rejected. The notebooks support the Kenneth R. French 10 Industry
-Portfolios daily value-weighted US return series as a separate benchmark; its official
-download was unavailable during this review, its raw data is absent, and its
-copyright is declared and redistribution terms remain unverified. Its configured
-folds test 2008 and 2020; no benchmark on it has been completed.
+therefore rejected. The planned primary benchmark uses daily Close prices for
+NIFTY BANK, IT and PHARMA from a pinned third-party Indian dataset. The common
+panel starts in 2011, covers the 2020 crisis, and excludes dividends from
+derived returns. A separate planned comparison uses the FRED Nasdaq US
+Large/Mid Cap sector total-return index panel, with 2008 and 2020 test periods.
+The reviewed local snapshot covers 30 March 2001 to 13 November 2026; it has
+6,518 complete trading rows and 168 all-missing holiday rows shared across
+series, with no partial missingness. Nasdaq claims
+copyright and requires pre-approval for redistribution. These indices are not
+tradable ETFs; no sector benchmark has been completed.
 
 For the audit merge, Python compilation, notebook syntax parsing, and diff
 checks passed. Runtime tests could not be run in the local environment because

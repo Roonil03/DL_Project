@@ -13,8 +13,9 @@ Many financial deep-learning comparisons report one aggregate forecasting or
 Sharpe score. That can hide failures during high-volatility, bearish, or crisis
 periods. This project studies architecture comparisons with regime-specific
 risk, trading-cost, uncertainty, and compute analysis rather than relying on
-a single aggregate ranking. The historical multi-market run and the planned US
-industry-return study have different datasets and limitations.
+a single aggregate ranking. The primary study focuses on Indian sectors; a
+separate US sector comparison and the historical multi-market run have
+different datasets and limitations.
 
 ## Models and contributors
 
@@ -35,16 +36,30 @@ market series because source close times and execution availability across
 markets remain unverified. Its default five-asset selection therefore cannot
 currently complete a new run.
 
-The notebooks also support the [Kenneth R. French 10 Industry Portfolios
-(Daily)](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/Data_Library/det_10_ind_port.html):
-real, constructed value-weighted US industry research returns, not directly
-tradable assets. The default asset selection and 2008 and 2020 test folds are
-configured in `configs/french_industry.yaml`. The official ZIP was unavailable
-locally when its download failed due to DNS; copyright is declared by the
-source and redistribution terms remain unverified. No French benchmark has
-been run or results reported. See [preparation instructions](RunningNotebooks.md#french-industry-data-and-notebook-mode).
+The planned primary study uses the [Indian market historical dataset](https://github.com/aswinv90/indian-market-historical-data)
+at pinned commit `1f4aff7c3e53a9f2bfb6a167b0d80f4d0c8f8bf9`
+for NIFTY BANK, IT and PHARMA. Its common daily panel begins in 2011 and
+has 3,675 complete sessions from 31 January 2011 through 31 December 2025,
+including the 2020 crisis. Returns are derived from daily Close prices and exclude
+dividends. The source permits noncommercial research and does not permit raw
+redistribution. No new benchmark results are available.
 
-The benchmark uses the **Global and Indian Financial Markets Dataset 2025**
+An optional separate US comparison uses [FRED's Nasdaq US Large/Mid Cap sector
+total-return index panel](https://fred.stlouisfed.org/graph/fredgraph.csv?id=NASDAQNQUSB10LMT,NASDAQNQUSB20LMT,NASDAQNQUSB30LMT,NASDAQNQUSB50LMT,NASDAQNQUSB60LMT):
+technology, health, financials, industrials and
+energy. The reviewed local snapshot spans 30 March 2001 to 13 November 2026,
+with 6,518 complete trading rows and 168 all-missing holiday rows shared by
+all series, with no partially missing rows. It contains 253 complete rows in
+2008 and 257 in 2020. Returns are derived from percentage changes in index
+levels. These are indices, not tradable ETFs. Nasdaq
+claims copyright and requires pre-approval for redistribution. No sector
+benchmark has been run or results reported.
+
+These are separate studies: the US panel is not a worldwide market sample.
+Keep Indian, US, and legacy mixed-market results separate rather than pooling
+their rankings across datasets.
+
+The historical benchmark used the **Global and Indian Financial Markets Dataset 2025**
 from [Kaggle](https://www.kaggle.com/datasets/muzaddidafaque/global-and-indian-financial-markets-dataset-2025).
 The audited input directory is:
 
@@ -58,7 +73,7 @@ hashes, schema, data types, date coverage, frequency, missing values,
 duplicate timestamps, asset identifiers, source fields, and license information
 in `metadata/data_manifest.json`. Verify the source license independently before
 using or redistributing the data. Raw data is not committed to
-Git and is excluded from result archives unless explicitly requested.
+Git and is excluded from result archives.
 
 ## Evaluation metrics
 

@@ -2,10 +2,10 @@
 
 > **Global Indian data restriction:** The benchmark rejects selected price series with
 > missing values and rejects multiple market series until close timestamps and
-> execution availability have been verified. The default five-asset selection
+> execution availability have been verified. The legacy mode's default five-asset selection
 > therefore cannot currently complete. Review the data and select an eligible
-> series before executing. French notebook mode is described in
-> [RunningNotebooks.md](../RunningNotebooks.md#french-industry-data-and-notebook-mode).
+> series before executing. Indian sector mode is described in
+> [RunningNotebooks.md](../RunningNotebooks.md#indian-sector-data).
 
 Clean notebook templates for the CUDA benchmark. Executed copies are written
 under `outputs/<run_id>/notebooks/`; templates keep empty outputs.
