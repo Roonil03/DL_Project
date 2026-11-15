@@ -89,7 +89,7 @@ def snapshot(root, destination):
         shutil.copyfile(root / rel, target)
 
 
-def bundle(run, destination, include_checkpoints=False, data=None):
+def bundle(run, destination, include_checkpoints=True, data=None):
     files = []
     for path in sorted(run.rglob('*')):
         rel = path.relative_to(run)
@@ -142,14 +142,14 @@ def main():
     snap.add_argument('root'); snap.add_argument('destination')
     pack = sub.add_parser('bundle')
     pack.add_argument('run'); pack.add_argument('destination')
-    pack.add_argument('--checkpoints', action='store_true'); pack.add_argument('--data')
+    pack.add_argument('--exclude-checkpoints', action='store_true'); pack.add_argument('--data')
     args = parser.parse_args()
     if args.command == 'identity':
         check_identity(Path(args.run), identity(Path(args.root), Path(args.data), json.loads(args.options)))
     elif args.command == 'snapshot':
         snapshot(Path(args.root), Path(args.destination))
     else:
-        bundle(Path(args.run), Path(args.destination), args.checkpoints, Path(args.data) if args.data else None)
+        bundle(Path(args.run), Path(args.destination), not args.exclude_checkpoints, Path(args.data) if args.data else None)
 
 
 if __name__ == '__main__':

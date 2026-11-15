@@ -30,7 +30,7 @@ def test_archive_manifest_matches_members_and_excludes_checkpoints(tmp_path):
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(name.encode())
     archive = tmp_path / 'bundle.zip'
-    bundle(run, archive)
+    bundle(run, archive, include_checkpoints=False)
     with zipfile.ZipFile(archive) as z:
         manifest = json.loads(z.read('run/bundle_manifest.json'))
         assert set(z.namelist()) == {x['path'] for x in manifest['files']} | {'run/bundle_manifest.json'}
@@ -44,7 +44,7 @@ def test_archive_manifest_matches_members_and_excludes_checkpoints(tmp_path):
             contents = z.read(row['path'])
             assert row['bytes'] == len(contents)
             assert row['sha256'] == hashlib.sha256(contents).hexdigest()
-    bundle(run, archive, include_checkpoints=True)
+    bundle(run, archive)
     with zipfile.ZipFile(archive) as z:
         assert 'run/checkpoints/latest.pt' in z.namelist()
 
@@ -125,7 +125,7 @@ def test_snapshot_covers_tracked_source_files():
     result = subprocess.run(['git', 'ls-files', 'src', 'configs', 'notebooks', 'scripts', 'tests',
                              'Dockerfile', 'docker-compose.yml', 'requirements.docker.txt',
                              'requirements.mamba-compat.txt', 'run_all_models.sh', 'README.md',
-                             'RunningNotebooks.md', 'DOCKER.md'], cwd=root, capture_output=True, text=True, check=True)
+                             'RunningNotebooks.md', 'DOCKER.md', 'LICENSE', 'requirements.cpu.txt'], cwd=root, capture_output=True, text=True, check=True)
     listed = set((root / 'scripts/source_snapshot.txt').read_text(encoding='utf-8-sig').splitlines())
     assert listed == set(result.stdout.splitlines())
 
@@ -195,3 +195,31 @@ def test_audit_manifest_keeps_identical_bytes_for_resume(tmp_path):
         env['manifest']['selected_assets'] = ['B']
         exec(fragment, env)
         assert json.loads(destination.with_suffix('.json.tmp').read_text())['selected_assets'] == ['B']
+
+
+def test_powershell_pilot_result_needs_timing_not_archive(tmp_path):
+    import os
+    import shutil
+    import subprocess
+    pwsh = shutil.which('powershell') or shutil.which('pwsh')
+    if not pwsh:
+        pytest.skip('PowerShell is not installed')
+    root = Path(__file__).resolve().parents[1]
+    run = tmp_path / 'run'
+    (run / 'telemetry').mkdir(parents=True)
+    (run / 'telemetry' / 'timing.json').write_text('{}')
+    env = dict(os.environ, RUNNER_SCRIPT=str(root / 'scripts/run_dl_benchmark.ps1'), TEST_RUN=str(run), TEST_ARCHIVE=str(tmp_path / 'missing.zip'))
+    command = """
+$tokens = $null; $errors = $null
+$tree = [System.Management.Automation.Language.Parser]::ParseFile($env:RUNNER_SCRIPT, [ref]$tokens, [ref]$errors)
+if ($errors) { exit 10 }
+$func = $tree.Find({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-RunnerResult'}, $true)
+Invoke-Expression $func.Extent.Text
+$result = Get-RunnerResult -Run $env:TEST_RUN -Archive $env:TEST_ARCHIVE -Pilot $true
+if (-not $result.EndsWith('timing.json')) { exit 11 }
+try { Get-RunnerResult -Run $env:TEST_RUN -Archive $env:TEST_ARCHIVE -Pilot $false; exit 12 } catch { }
+Remove-Item -LiteralPath (Join-Path $env:TEST_RUN 'telemetry/timing.json')
+try { Get-RunnerResult -Run $env:TEST_RUN -Archive $env:TEST_ARCHIVE -Pilot $true; exit 13 } catch { }
+exit 0
+"""
+    subprocess.run([pwsh, '-NoProfile', '-Command', command], env=env, check=True, capture_output=True, text=True)

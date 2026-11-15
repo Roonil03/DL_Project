@@ -1,5 +1,6 @@
 DOCKER.md
 Dockerfile
+LICENSE
 README.md
 RunningNotebooks.md
 configs/backtest.yaml
@@ -15,6 +16,7 @@ notebooks/20_benchmark.ipynb
 notebooks/30_validation.ipynb
 notebooks/40_report.ipynb
 notebooks/README.md
+requirements.cpu.txt
 requirements.docker.txt
 requirements.mamba-compat.txt
 run_all_models.sh

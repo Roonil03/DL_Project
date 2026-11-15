@@ -13,10 +13,21 @@ param(
     [ValidateSet('auto','restart','fail')][string]$ResumeMode = 'auto',
     [switch]$ForceFresh,
     [switch]$PackageCheckpoints,
+    [switch]$ExcludeCheckpoints,
     [int]$MaxRetries = 2,
     [switch]$EstimateOnly
 )
 $ErrorActionPreference = 'Stop'
+function Get-RunnerResult {
+    param([string]$Run, [string]$Archive, [bool]$Pilot)
+    if ($Pilot) {
+        $timing = Join-Path $Run 'telemetry\timing.json'
+        if (-not (Test-Path -LiteralPath $timing -PathType Leaf)) { throw 'Runner returned success without pilot timing.' }
+        return $timing
+    }
+    if (-not (Test-Path -LiteralPath $Archive -PathType Leaf)) { throw 'Runner returned success without archive' }
+    return $Archive
+}
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Set-Location $root
 if (-not $RunId) { $RunId = 'run-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ') }
@@ -25,6 +36,7 @@ if ($Folds.Count -eq 0) { if ($DatasetMode -eq 'french_industry') { $Folds = @(0
 if ($Epochs -lt 1 -or $MaxRetries -lt 0 -or $Seeds.Count -eq 0 -or $Folds.Count -eq 0) { throw 'Epochs and seed/fold lists must be positive; retries cannot be negative.' }
 if ($Folds | Where-Object { $_ -lt 0 }) { throw 'Fold IDs must be nonnegative.' }
 if ($ForceFresh) { $ResumeMode = 'restart' }
+if ($PackageCheckpoints -and $ExcludeCheckpoints) { throw 'PackageCheckpoints and ExcludeCheckpoints cannot be combined.' }
 if (-not $DatasetPath) {
     if ($DatasetMode -eq 'french_industry') { $DatasetPath = 'data\french_industry' }
     else { $DatasetPath = 'data\kaggle_global_indian_markets\global-india-markets-macro' }
@@ -50,7 +62,7 @@ if (-not $env:JUPYTER_TOKEN) { throw 'Set a nonempty JUPYTER_TOKEN in your Power
 $plan = @{
     run_id=$RunId; model_names=$Models; seeds=$Seeds; folds=$Folds; device=$Device
     epochs=$Epochs; resume_mode=$ResumeMode; dataset=$data; output=$run
-    estimate_only=[bool]$EstimateOnly; checkpoint_archive=[bool]$PackageCheckpoints
+    estimate_only=[bool]$EstimateOnly; checkpoint_archive=(-not [bool]$ExcludeCheckpoints)
 }
 Write-Host ('Planned run: ' + ($plan | ConvertTo-Json -Compress -Depth 5))
 Write-Host 'Commands: reuse local image or build if absent; start Compose service; GPU preflight; execute runner.'
@@ -67,8 +79,10 @@ $files = $requiredFiles | ForEach-Object {
     ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $preflight -Encoding UTF8
 $env:GIT_REVISION = (& git rev-parse HEAD).Trim()
 try {
-    # Stop stale containers and reuse an existing CUDA image. Build only when
-    # the image is absent; preserve volumes and user data.
+    # Check the daemon before deciding whether an image needs to be built.
+    & docker info *> $null
+    if ($LASTEXITCODE -ne 0) { throw 'Docker daemon unavailable. Start Docker Desktop and retry.' }
+    # Reuse an existing CUDA image; build only when it is absent.
     & docker image inspect fin-dl-benchmark:cuda12.4 *> $null
     if ($LASTEXITCODE -ne 0) {
         Write-Host 'CUDA image is not present locally; building it once.'
@@ -82,12 +96,16 @@ try {
     $gpuCheck = "import torch; assert torch.cuda.is_available(), 'CUDA unavailable in container'; x=torch.ones(1,device='cuda'); print({'torch':torch.__version__,'cuda':torch.version.cuda,'device':torch.cuda.get_device_name(0),'tensor':x.item()})"
     & docker compose exec -T jupyter /opt/venv/bin/python -c $gpuCheck
     if ($LASTEXITCODE -ne 0) { throw 'CUDA preflight failed inside Docker. Check NVIDIA Container Toolkit, Docker GPU support, and the CUDA image.' }
-    $execArgs = @('compose','exec','-T','-e',"GIT_REVISION=$env:GIT_REVISION",'-e',"RUN_ID=$RunId",'-e',"MODELS=$($Models -join ',')",'-e',"SEEDS=$($Seeds -join ',')",'-e',"FOLDS=$($Folds -join ',')",'-e',"DEVICE=gpu",'-e',"RESUME_MODE=$ResumeMode",'-e',"EPOCHS=$Epochs",'-e',"MAX_RETRIES=$MaxRetries",'-e',"ESTIMATE_ONLY=$([int][bool]$EstimateOnly)",'-e',"DATASET_MODE=$DatasetMode",'-e',"DATA_DIR=$containerData",'-e',"FIN_ASSETS=$env:FIN_ASSETS",'-e',"FIN_DATA_RETRIEVED_AT=$env:FIN_DATA_RETRIEVED_AT",'-e',"PACKAGE_CHECKPOINTS=$([int][bool]$PackageCheckpoints)",'jupyter','bash','./run_all_models.sh')
+    $execArgs = @('compose','exec','-T','-e',"GIT_REVISION=$env:GIT_REVISION",'-e',"RUN_ID=$RunId",'-e',"MODELS=$($Models -join ',')",'-e',"SEEDS=$($Seeds -join ',')",'-e',"FOLDS=$($Folds -join ',')",'-e',"DEVICE=gpu",'-e',"RESUME_MODE=$ResumeMode",'-e',"EPOCHS=$Epochs",'-e',"MAX_RETRIES=$MaxRetries",'-e',"ESTIMATE_ONLY=$([int][bool]$EstimateOnly)",'-e',"DATASET_MODE=$DatasetMode",'-e',"DATA_DIR=$containerData",'-e',"FIN_ASSETS=$env:FIN_ASSETS",'-e',"FIN_DATA_RETRIEVED_AT=$env:FIN_DATA_RETRIEVED_AT",'-e',"PACKAGE_CHECKPOINTS=$([int](-not [bool]$ExcludeCheckpoints))",'jupyter','bash','./run_all_models.sh')
     & docker @execArgs
     if ($LASTEXITCODE -ne 0) { throw "Container runner failed with exit code $LASTEXITCODE; inspect $run" }
     $archive = Join-Path $root ("artifacts\$RunId.zip")
-    if (-not (Test-Path -LiteralPath $archive)) { throw 'Runner returned success without archive' }
-    Write-Host "Completed archive: $archive"
+    $result = Get-RunnerResult -Run $run -Archive $archive -Pilot ([bool]$EstimateOnly)
+    if ($EstimateOnly) {
+        Write-Host "Measured pilot timing: $result"
+        return
+    }
+    Write-Host "Completed archive: $result"
     Write-Host "Manifest: $(Join-Path $run 'bundle_manifest.json')"
     Write-Host "Data hashes: $preflight"
 } catch {

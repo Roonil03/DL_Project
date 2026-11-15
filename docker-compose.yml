@@ -50,6 +50,8 @@ services:
       - ./Dockerfile:/home/jovyan/work/Dockerfile:ro
       - ./docker-compose.yml:/home/jovyan/work/docker-compose.yml:ro
       - ./requirements.docker.txt:/home/jovyan/work/requirements.docker.txt:ro
+      - ./requirements.cpu.txt:/home/jovyan/work/requirements.cpu.txt:ro
+      - ./LICENSE:/home/jovyan/work/LICENSE:ro
       - ./requirements.mamba-compat.txt:/home/jovyan/work/requirements.mamba-compat.txt:ro
       - ./README.md:/home/jovyan/work/README.md:ro
       - ./DOCKER.md:/home/jovyan/work/DOCKER.md:ro

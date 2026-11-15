@@ -6,6 +6,7 @@ IFS=$'\n\t'
 # inside the image.  Compose sets IN_CONTAINER=1 to prevent recursion.
 if [[ "${IN_CONTAINER:-0}" != "1" ]]; then
   command -v docker >/dev/null 2>&1 || { echo "docker is required" >&2; exit 2; }
+  docker info >/dev/null 2>&1 || { echo "Docker daemon unavailable; start Docker Desktop and retry" >&2; exit 2; }
   docker image inspect fin-dl-benchmark:cuda12.4 >/dev/null 2>&1 || docker compose build --pull jupyter
   docker compose up -d jupyter
   exec docker compose exec -T \
@@ -40,7 +41,7 @@ case "$DATASET_MODE" in
   french_industry) DATA_DIR="${DATA_DIR:-data/french_industry}"; FOLDS="${FOLDS:-0,1}" ;;
   *) echo "Unsupported DATASET_MODE: $DATASET_MODE" >&2; exit 2 ;;
 esac
-PACKAGE_CHECKPOINTS="${PACKAGE_CHECKPOINTS:-0}"
+PACKAGE_CHECKPOINTS="${PACKAGE_CHECKPOINTS:-1}"
 
 # Notebook execution changes its working directory to `notebooks/`; resolve
 # all host-provided paths before launching nbconvert so every notebook writes
@@ -310,6 +311,17 @@ PY
   fail "required units failed: ${FAIL_LIST[*]}"
 fi
 
+if [[ "$ESTIMATE_ONLY" == "1" ]]; then
+  kill "$MONITOR_PID" 2>/dev/null || true
+  wait "$MONITOR_PID" 2>/dev/null || true
+  MONITOR_PID=""
+  python scripts/system_monitor.py plot "$RUN_DIR/telemetry/system_metrics.jsonl" "$RUN_DIR/figures/system_utilization.png"
+  printf '{"schema_version":"1.0","status":"pilot_complete"}\n' > "$STATE"
+  event pilot_complete "timing=$TIMING"
+  echo "Measured pilot timing: $TIMING"
+  exit 0
+fi
+
 export RUN_TRAINING=0 MODEL=all
 execute_notebook notebooks/30_validation.ipynb 30_validation.executed.ipynb 900
 execute_notebook notebooks/40_report.ipynb 40_report.executed.ipynb 900
@@ -339,7 +351,7 @@ exec 1>&3 2>&4
 # Wait for the tee process to flush before reading run.log.
 wait || true
 bundle_args=()
-[[ "$PACKAGE_CHECKPOINTS" == "1" ]] && bundle_args+=(--checkpoints)
+[[ "$PACKAGE_CHECKPOINTS" == "0" ]] && bundle_args+=(--exclude-checkpoints)
 [[ "$INCLUDE_DATA" == "1" ]] && bundle_args+=(--data "$DATA_DIR")
 if ! python scripts/runner_support.py bundle "$RUN_DIR" "$ARTIFACT" "${bundle_args[@]}"; then
   python - "$STATE" <<'PY'
