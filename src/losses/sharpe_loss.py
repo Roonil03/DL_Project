@@ -6,13 +6,16 @@ class NegativeSharpeLoss(nn.Module):
     Differentiable Negative Annualized Sharpe Ratio Loss.
     Accepts either (signals, next_returns) or pre-computed portfolio returns.
     """
-    def __init__(self, eps: float = 1e-6, ann_factor: float = 252.0, alpha: float = 1.0):
+    def __init__(self, eps: float = 1e-6, ann_factor: float = 252.0, alpha: float = 1.0, target_vol: float = 0.10, max_leverage: float = 3.0):
         super(NegativeSharpeLoss, self).__init__()
+        self.requires_multiple_observations = True
         self.eps = eps
         self.ann_factor = ann_factor
         self.alpha = alpha
+        self.target_vol = target_vol
+        self.max_leverage = max_leverage
 
-    def forward(self, signals_or_returns: torch.Tensor, targets: torch.Tensor = None) -> torch.Tensor:
+    def forward(self, signals_or_returns: torch.Tensor, targets: torch.Tensor = None, ex_ante_vol: torch.Tensor = None) -> torch.Tensor:
         """
         signals_or_returns: [batch_size, num_assets]
         targets: [batch_size, num_assets] next-period returns
@@ -21,7 +24,12 @@ class NegativeSharpeLoss(nn.Module):
             # signals_or_returns represents model output positions s_t
             # targets represents next period asset returns r_{t+1}
             # Element-wise product = asset return contribution
-            port_returns = torch.mean(signals_or_returns * targets, dim=-1)
+            positions = signals_or_returns
+            if ex_ante_vol is not None:
+                if ex_ante_vol.shape != signals_or_returns.shape:
+                    raise ValueError("volatility must match signal shape")
+                positions = torch.clamp(signals_or_returns * self.target_vol / ex_ante_vol.clamp_min(1e-6), -self.max_leverage, self.max_leverage)
+            port_returns = torch.mean(positions * targets, dim=-1)
         else:
             if signals_or_returns.dim() == 2:
                 port_returns = torch.mean(signals_or_returns, dim=-1)
