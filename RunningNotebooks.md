@@ -101,10 +101,11 @@ explicit CPU selection.
 Checkpoint files use PyTorch serialization; load only checkpoints from trusted
 authors and keep raw market data and credentials outside the result archive.
 
-From Git Bash or WSL at the repository root:
+With the French ZIP prepared as described above, run from Git Bash or WSL at
+the repository root:
 
 ```bash
-./run_all_models.sh
+DATASET_MODE=french_industry ./run_all_models.sh
 ```
 
 The host entrypoint checks the Docker daemon, reuses the local image or builds
