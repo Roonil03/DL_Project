@@ -4,7 +4,8 @@
 > missing values and rejects multiple market series until close timestamps and
 > execution availability have been verified. The default five-asset selection
 > therefore cannot currently complete. Review the data and select an eligible
-> series before executing; a French industry-portfolio run is pending.
+> series before executing. French notebook mode is described below; the
+> current shell and PowerShell runners still use the Kaggle dataset.
 
 This document contains the execution instructions for the notebook suite. The
 recommended path is the pinned CUDA Docker image; it keeps the host Python
@@ -27,6 +28,57 @@ Mamba implementation is unavailable.
 
 - Enough disk space for checkpoints, figures, executed notebooks, and the ZIP
   archive. The raw dataset is not included in the archive by default.
+
+## French industry data and notebook mode
+
+The [official Kenneth R. French data library](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/Data_Library/det_10_ind_port.html)
+provides daily value-weighted US industry research portfolio returns. These are
+constructed portfolios, not directly tradable assets, and have no macro series.
+The local ZIP is currently absent: the attempted official download failed due
+to DNS. The source declares copyright; verify use and redistribution terms.
+
+With Docker and the GPU-enabled Compose service available, set `JUPYTER_TOKEN`
+as described below, build the image, and run the preparation script in its
+virtual environment. The extra mount is needed because the image does not copy
+the `scripts` directory. From PowerShell at the repository root:
+
+```powershell
+docker compose build jupyter
+docker compose run --rm --volume "${PWD}/scripts:/home/jovyan/work/scripts:ro" `
+  jupyter /opt/venv/bin/python scripts/prepare_french_industry.py
+```
+
+The script downloads and validates the ZIP, records its SHA-256 and retrieval
+time in a sidecar manifest, and refuses to overwrite an existing snapshot. If
+DNS still fails, obtain the official `10_Industry_Portfolios_daily_CSV.zip`
+separately and place it at `data/french_industry/10_Industry_Portfolios_daily_CSV.zip`.
+The audit notebook validates it and records its hash; retain the exact ZIP
+because the library can reconstruct historical returns on later updates.
+
+For interactive notebook use, start Jupyter with `DATASET_MODE=french_industry`
+and the same `RUN_ID` for the audit and benchmark. For example, after setting
+the token, run:
+
+```powershell
+docker compose run --rm --service-ports -e DATASET_MODE=french_industry `
+  -e RUN_ID=french-study jupyter
+```
+
+Run `10_data_audit.ipynb` before `20_benchmark.ipynb`; the benchmark verifies
+the source hash, selection, and config against the audit manifest. The default
+directory is `data/french_industry/`. `configs/french_industry.yaml` defines
+the ten industry columns and folds; optional `FIN_ASSETS` selects a
+comma-separated subset and must match at audit and training. Fold 0 tests
+2008 and fold 1 tests 2020, each using five prior training years and an
+intervening validation year. Signals use information through the decision
+close and target the next US trading day's return. Regimes use cumulative
+research returns as indices. Live execution and actual costs are not established.
+Training is disabled by default. To execute a unit, provide `RUN_TRAINING=1`,
+`MODEL`, `SEED`, `FOLD`, `DEVICE`, and the audited `RUN_ID` in the notebook
+environment before running the benchmark cells. Keep the same data selection
+and config used for the audit.
+The shell and PowerShell runners do not yet select this dataset mode; use the
+notebooks rather than those runners for French mode at this revision.
 
 ## Docker runner (recommended)
 

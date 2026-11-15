@@ -4,7 +4,8 @@
 > missing values and rejects multiple market series until close timestamps and
 > execution availability have been verified. The default five-asset selection
 > therefore cannot currently complete. Review the data and select an eligible
-> series before executing; a French industry-portfolio run is pending.
+> series before executing. French notebook mode is described in
+> [RunningNotebooks.md](../RunningNotebooks.md#french-industry-data-and-notebook-mode).
 
 Clean notebook templates for the CUDA benchmark. Executed copies are written
 under `outputs/<run_id>/notebooks/`; templates keep empty outputs.

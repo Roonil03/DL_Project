@@ -35,9 +35,14 @@ market series because source close times and execution availability across
 markets remain unverified. Its default five-asset selection therefore cannot
 currently complete a new run.
 
-A future run using the [Kenneth R. French 10 Industry Portfolios (Daily)](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/Data_Library/det_10_ind_port.html)
-is pending data access and implementation. No French dataset benchmark results
-are reported here.
+The notebooks also support the [Kenneth R. French 10 Industry Portfolios
+(Daily)](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/Data_Library/det_10_ind_port.html):
+real, constructed value-weighted US industry research returns, not directly
+tradable assets. The default asset selection and 2008 and 2020 test folds are
+configured in `configs/french_industry.yaml`. The official ZIP was unavailable
+locally when its download failed due to DNS; copyright is declared by the
+source and redistribution terms remain unverified. No French benchmark has
+been run or results reported. See [preparation instructions](RunningNotebooks.md#french-industry-data-and-notebook-mode).
 
 The benchmark uses the **Global and Indian Financial Markets Dataset 2025**
 from [Kaggle](https://www.kaggle.com/datasets/muzaddidafaque/global-and-indian-financial-markets-dataset-2025).

@@ -14,11 +14,11 @@ The mixed-market restriction remains: the source close timestamps and the
 time at which each market's data can be used for execution have not been
 verified. Calendar-date alignment alone does not establish that information
 was available at the decision time. The default five-asset selection is
-therefore rejected. A proposed alternative is the Kenneth R. French 10
-Industry Portfolios daily value-weighted US return series; its official
+therefore rejected. The notebooks support the Kenneth R. French 10 Industry
+Portfolios daily value-weighted US return series as a separate benchmark; its official
 download was unavailable during this review, its raw data is absent, and its
-license and redistribution terms remain unverified. No benchmark on it has
-been completed.
+copyright is declared and redistribution terms remain unverified. Its configured
+folds test 2008 and 2020; no benchmark on it has been completed.
 
 For the audit merge, Python compilation, notebook syntax parsing, and diff
 checks passed. Runtime tests could not be run in the local environment because
