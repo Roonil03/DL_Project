@@ -37,6 +37,7 @@ src/data/india_indices.py
 src/data/scaling.py
 src/data/splits.py
 src/data/walk_forward.py
+src/data/validation.py
 src/data/windows.py
 src/evaluation/analysis.py
 src/evaluation/metrics.py
@@ -66,6 +67,7 @@ tests/test_metrics_validation.py
 tests/test_optimizations.py
 tests/test_portfolio_objective.py
 tests/test_runner_support.py
+tests/test_validation_data.py
 tests/test_runtime_analysis.py
 tests/test_shapes.py
 tests/test_trainer_resume.py
