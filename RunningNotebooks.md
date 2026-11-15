@@ -207,7 +207,7 @@ each requested model/seed/fold unit and saves the executed notebook under
 ## Resume, failure, and timing behaviour
 
 Each unit writes atomic checkpoints under
-`outputs/<run_id>/checkpoints/<model>/seed_<seed>/`. In `auto` mode, completed
+`outputs/<run_id>/checkpoints/<model>/seed_<seed>/fold_<fold>/`. In `auto` mode, completed
 units are skipped and failed units resume only from a compatible checkpoint.
 Corrupt, incompatible, or missing checkpoints are recorded as failures rather
 than silently restarting. `ESTIMATE_ONLY=1` measures pilot timing on the
@@ -233,8 +233,8 @@ outputs/<run_id>/
 The runner copies the source code and execution files, including `LICENSE` and
 `requirements.cpu.txt`, into the run tree,
 creates `bundle_manifest.json` with SHA-256 checksums, writes
-`Final_Metrics.md`, creates `artifacts/<run_id>.zip`, and runs `unzip -t` before
-reporting success. The ZIP includes checkpoints by default; opt out with
+`Final_Metrics.md`, creates `artifacts/<run_id>.zip`, and verifies it with
+Python's `ZipFile.testzip()` and SHA-256 checks before reporting success. The ZIP includes checkpoints by default; opt out with
 `PACKAGE_CHECKPOINTS=0` or PowerShell's `-ExcludeCheckpoints`. Raw data is
 excluded unless `INCLUDE_DATA=1` is passed to the Bash runner. Failed runs preserve partial logs, telemetry, and
 checkpoints but do not create a publishable ZIP.
