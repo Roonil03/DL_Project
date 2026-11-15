@@ -32,8 +32,8 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Set-Location $root
 if (-not $RunId) { $RunId = 'run-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ') }
 if ($RunId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$' -or $RunId.Contains('..')) { throw 'RunId must be a safe folder name.' }
-if ($Folds.Count -eq 0) { if ($DatasetMode -eq 'french_industry') { $Folds = @(0,1) } else { $Folds = @(0) } }
-if ($Epochs -lt 1 -or $MaxRetries -lt 0 -or $Seeds.Count -eq 0 -or $Folds.Count -eq 0) { throw 'Epochs and seed/fold lists must be positive; retries cannot be negative.' }
+if ($Folds.Count -eq 0 -and $DatasetMode -eq 'global_indian') { $Folds = @(0) }
+if ($Epochs -lt 1 -or $MaxRetries -lt 0 -or $Seeds.Count -eq 0) { throw 'Epochs and seed list must be positive; retries cannot be negative.' }
 if ($Folds | Where-Object { $_ -lt 0 }) { throw 'Fold IDs must be nonnegative.' }
 if ($ForceFresh) { $ResumeMode = 'restart' }
 if ($PackageCheckpoints -and $ExcludeCheckpoints) { throw 'PackageCheckpoints and ExcludeCheckpoints cannot be combined.' }
@@ -62,6 +62,7 @@ if (-not $env:JUPYTER_TOKEN) { throw 'Set a nonempty JUPYTER_TOKEN in your Power
 $plan = @{
     run_id=$RunId; model_names=$Models; seeds=$Seeds; folds=$Folds; device=$Device
     epochs=$Epochs; resume_mode=$ResumeMode; dataset=$data; output=$run
+    fold_selection=if ($Folds.Count -eq 0) { 'auto from French configuration' } else { 'explicit' }
     estimate_only=[bool]$EstimateOnly; checkpoint_archive=(-not [bool]$ExcludeCheckpoints)
 }
 Write-Host ('Planned run: ' + ($plan | ConvertTo-Json -Compress -Depth 5))

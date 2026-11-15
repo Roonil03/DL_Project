@@ -38,7 +38,7 @@ ESTIMATE_ONLY="${ESTIMATE_ONLY:-0}"
 DATASET_MODE="${DATASET_MODE:-global_indian}"
 case "$DATASET_MODE" in
   global_indian) DATA_DIR="${DATA_DIR:-data/kaggle_global_indian_markets/global-india-markets-macro}"; FIN_ASSETS="${FIN_ASSETS:-NIFTY50,SP500,USDINR,GOLD,BRENT}"; FOLDS="${FOLDS:-0}" ;;
-  french_industry) DATA_DIR="${DATA_DIR:-data/french_industry}"; FOLDS="${FOLDS:-0,1}" ;;
+  french_industry) DATA_DIR="${DATA_DIR:-data/french_industry}"; FOLDS="$(python scripts/runner_support.py french-folds configs/french_industry.yaml "$FOLDS")" ;;
   *) echo "Unsupported DATASET_MODE: $DATASET_MODE" >&2; exit 2 ;;
 esac
 PACKAGE_CHECKPOINTS="${PACKAGE_CHECKPOINTS:-1}"

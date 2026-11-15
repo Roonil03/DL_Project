@@ -3,6 +3,8 @@ import argparse
 import hashlib
 import json
 import os
+import re
+import sys
 import shutil
 from pathlib import Path
 import tempfile
@@ -15,6 +17,25 @@ def digest(path):
         for chunk in iter(lambda: stream.read(1024 * 1024), b''):
             h.update(chunk)
     return h.hexdigest()
+
+
+def resolve_french_folds(config_path, requested=''):
+    """Validate the same configuration as the notebooks and resolve fold IDs."""
+    import yaml
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from src.data.french_benchmark import validate_french_config
+
+    config = validate_french_config(yaml.safe_load(Path(config_path).read_text(encoding='utf-8')))
+    count = len(config['folds']['test_years'])
+    if not requested:
+        return list(range(count))
+    parts = requested.split(',')
+    if any(not re.fullmatch(r'[0-9]+', part) for part in parts):
+        raise ValueError('FOLDS must be a comma-separated list of nonnegative integers')
+    folds = [int(part) for part in parts]
+    if len(set(folds)) != len(folds) or any(fold >= count for fold in folds):
+        raise ValueError(f'FOLDS must be unique IDs in the range 0..{count - 1}')
+    return folds
 
 
 def identity(root, data, options):
@@ -135,6 +156,8 @@ def bundle(run, destination, include_checkpoints=True, data=None):
 def main():
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest='command', required=True)
+    folds = sub.add_parser('french-folds')
+    folds.add_argument('config'); folds.add_argument('requested', nargs='?', default='')
     ident = sub.add_parser('identity')
     for arg in ('root', 'data', 'run', 'options'):
         ident.add_argument(arg)
@@ -144,7 +167,9 @@ def main():
     pack.add_argument('run'); pack.add_argument('destination')
     pack.add_argument('--exclude-checkpoints', action='store_true'); pack.add_argument('--data')
     args = parser.parse_args()
-    if args.command == 'identity':
+    if args.command == 'french-folds':
+        print(','.join(map(str, resolve_french_folds(args.config, args.requested))))
+    elif args.command == 'identity':
         check_identity(Path(args.run), identity(Path(args.root), Path(args.data), json.loads(args.options)))
     elif args.command == 'snapshot':
         snapshot(Path(args.root), Path(args.destination))

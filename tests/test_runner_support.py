@@ -4,7 +4,7 @@ from pathlib import Path
 import zipfile
 
 import pytest
-from scripts.runner_support import bundle, check_identity, snapshot, identity
+from scripts.runner_support import bundle, check_identity, snapshot, identity, resolve_french_folds
 
 
 def test_identity_prevents_reusing_markers_after_inputs_change(tmp_path):
@@ -149,7 +149,7 @@ def test_french_notebook_defaults_match_config(monkeypatch):
     runner = (root / 'run_all_models.sh').read_text()
     french_case = next(line for line in runner.splitlines() if line.strip().startswith('french_industry)'))
     assert 'FIN_ASSETS' not in french_case
-    assert 'FOLDS="${FOLDS:-0,1}"' in french_case
+    assert 'french-folds configs/french_industry.yaml' in french_case
     assert config['folds']['test_years'] == [2008, 2020]
 
 
@@ -223,3 +223,35 @@ try { Get-RunnerResult -Run $env:TEST_RUN -Archive $env:TEST_ARCHIVE -Pilot $tru
 exit 0
 """
     subprocess.run([pwsh, '-NoProfile', '-Command', command], env=env, check=True, capture_output=True, text=True)
+
+
+@pytest.mark.parametrize('years,expected', [([2008], [0]), ([2008, 2020, 2022], [0, 1, 2])])
+def test_french_fold_defaults_follow_validated_config(tmp_path, monkeypatch, years, expected):
+    import ast
+    import sys
+    import types
+    import yaml
+    root = Path(__file__).resolve().parents[1]
+    config = yaml.safe_load((root / 'configs/french_industry.yaml').read_text())
+    config['folds']['test_years'] = years
+    config_file = tmp_path / 'french.yaml'
+    config_file.write_text(yaml.safe_dump(config))
+    # Execute the project's actual validation function without importing its
+    # unrelated training dependencies into this lightweight runner test.
+    source = ast.parse((root / 'src/data/french_benchmark.py').read_text())
+    validator = next(node for node in source.body if isinstance(node, ast.FunctionDef) and node.name == 'validate_french_config')
+    namespace = {'ASSETS': config['assets']}
+    exec(compile(ast.Module(body=[validator], type_ignores=[]), '<validator>', 'exec'), namespace)
+    module = types.ModuleType('src.data.french_benchmark')
+    module.validate_french_config = namespace['validate_french_config']
+    monkeypatch.setitem(sys.modules, 'src.data.french_benchmark', module)
+    assert resolve_french_folds(config_file) == expected
+    assert resolve_french_folds(config_file, str(expected[-1])) == [expected[-1]]
+    with pytest.raises(ValueError, match='range'):
+        resolve_french_folds(config_file, str(len(years)))
+    with pytest.raises(ValueError, match='comma-separated'):
+        resolve_french_folds(config_file, '-1')
+    config['folds']['test_years'] = []
+    config_file.write_text(yaml.safe_dump(config))
+    with pytest.raises(ValueError, match='test_years'):
+        resolve_french_folds(config_file)
