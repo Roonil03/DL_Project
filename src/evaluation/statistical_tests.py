@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from typing import Tuple, Dict
 
 def block_bootstrap_sharpe(returns: np.ndarray, block_size: int = 20, num_bootstraps: int = 1000, random_seed: int = 42) -> Tuple[float, float, float]:
@@ -11,7 +12,7 @@ def block_bootstrap_sharpe(returns: np.ndarray, block_size: int = 20, num_bootst
     ret_arr = ret_arr[~np.isnan(ret_arr)]
     n = len(ret_arr)
     if n < block_size * 2:
-        return 0.0, 0.0, 0.0
+        return float('nan'), float('nan'), float('nan')
         
     point_mean = np.mean(ret_arr) * 252.0
     point_vol = np.std(ret_arr, ddof=1) * np.sqrt(252.0)
@@ -58,10 +59,13 @@ def paired_sharpe_difference_test(returns_a: np.ndarray, returns_b: np.ndarray, 
     """
     Paired bootstrap test for difference in Sharpe ratio: H0: Sharpe(A) <= Sharpe(B) vs H1: Sharpe(A) > Sharpe(B).
     """
+    if isinstance(returns_a, pd.Series) and isinstance(returns_b, pd.Series):
+        if not returns_a.index.equals(returns_b.index):
+            raise ValueError('paired return indices must match exactly')
     r_a = np.asarray(returns_a, dtype=float).reshape(-1)
     r_b = np.asarray(returns_b, dtype=float).reshape(-1)
-    min_len = min(len(r_a), len(r_b))
-    r_a, r_b = r_a[:min_len], r_b[:min_len]
+    if len(r_a) != len(r_b):
+        raise ValueError('paired returns must have equal lengths and aligned timestamps')
     valid = np.isfinite(r_a) & np.isfinite(r_b)
     r_a, r_b = r_a[valid], r_b[valid]
     min_len = len(r_a)

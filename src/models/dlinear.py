@@ -21,25 +21,10 @@ class DLinear(TradingSignalModel):
         
         self.trend_window = max(3, min(trend_window, lookback))
         
-        # Enhanced linear projections with an intermediate bottleneck for better feature extraction
-        self.linear_seasonal = nn.Sequential(
-            nn.Linear(self.lookback, self.lookback // 2),
-            nn.GELU(),
-            nn.Linear(self.lookback // 2, 1)
-        )
-        self.linear_trend = nn.Sequential(
-            nn.Linear(self.lookback, self.lookback // 2),
-            nn.GELU(),
-            nn.Linear(self.lookback // 2, 1)
-        )
-        
-        # Cross-feature projection to target asset signals
-        self.proj = nn.Sequential(
-            nn.Linear(self.num_features, self.num_features),
-            nn.LayerNorm(self.num_features),
-            nn.Tanh(),
-            nn.Linear(self.num_features, self.num_assets)
-        )
+        # Shared temporal linear maps, followed by an asset projection.
+        self.linear_seasonal = nn.Linear(self.lookback, 1)
+        self.linear_trend = nn.Linear(self.lookback, 1)
+        self.proj = nn.Linear(self.num_features, self.num_assets)
 
     def forward(self, x):
         """
