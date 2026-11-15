@@ -71,9 +71,9 @@ fi
 
 # Bind this run to all inputs before reading or writing completion markers.
 mkdir -p "$RUN_DIR"
-options=$(python - "$DEVICE" "$EPOCHS" "$MODELS" "$SEEDS" "$FOLDS" "$DATASET_MODE" "${FIN_ASSETS:-}" "$ESTIMATE_ONLY" "$GIT_REVISION" <<'PYIDENT'
+options=$(python - "$DEVICE" "$EPOCHS" "$MODELS" "$SEEDS" "$FOLDS" "$DATASET_MODE" "${FIN_ASSETS:-}" "$ESTIMATE_ONLY" "$GIT_REVISION" "${FIN_DATA_RETRIEVED_AT:-}" <<'PYIDENT'
 import hashlib,json,os,subprocess,sys
-options=dict(zip(('device','epochs','models','seeds','folds','dataset_mode','assets','estimate_only','git_revision'),sys.argv[1:]))
+options=dict(zip(('device','epochs','models','seeds','folds','dataset_mode','assets','estimate_only','git_revision','data_retrieved_at'),sys.argv[1:]))
 options["dependency_lock_sha256"]=hashlib.sha256(subprocess.check_output([sys.executable,"-m","pip","freeze"])).hexdigest()
 options["image_identifier"]=os.getenv("BENCHMARK_IMAGE")
 print(json.dumps(options))

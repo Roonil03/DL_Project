@@ -25,7 +25,7 @@ def test_legacy_run_cannot_be_trusted(tmp_path):
 
 def test_archive_manifest_matches_members_and_excludes_checkpoints(tmp_path):
     run = tmp_path / 'run'
-    for name in ('logs/run.log', 'figures/loss.png', 'notebooks/run.ipynb', 'telemetry/state.json', 'checkpoints/latest.pt'):
+    for name in ('logs/run.log', 'figures/loss.png', 'notebooks/run.ipynb', 'telemetry/state.json', 'checkpoints/latest.pt', 'code/src/model.py', 'code/notebooks/template.ipynb', 'code/configs/training.yaml', 'code/Dockerfile', 'code/docker-compose.yml', 'code/scripts/runner_support.py', 'code/requirements.docker.txt', 'code/run_all_models.sh'):
         p = run / name
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(name.encode())
@@ -35,6 +35,11 @@ def test_archive_manifest_matches_members_and_excludes_checkpoints(tmp_path):
         manifest = json.loads(z.read('run/bundle_manifest.json'))
         assert set(z.namelist()) == {x['path'] for x in manifest['files']} | {'run/bundle_manifest.json'}
         assert not any('/checkpoints/' in name for name in z.namelist())
+        assert 'run/code/src/model.py' in z.namelist()
+        assert 'run/code/notebooks/template.ipynb' in z.namelist()
+        assert 'run/code/configs/training.yaml' in z.namelist()
+        assert 'run/code/Dockerfile' in z.namelist()
+        assert 'run/code/scripts/runner_support.py' in z.namelist()
         for row in manifest['files']:
             contents = z.read(row['path'])
             assert row['bytes'] == len(contents)
