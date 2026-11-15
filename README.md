@@ -1,10 +1,11 @@
-# Regime-Robust Financial Deep Learning Benchmark
+# Benchmarking Deep Learning Architectures for Financial Time-Series Prediction and Risk Optimization under Market Regimes
 
 This project benchmarks four neural architectures for financial time-series
 signal generation and portfolio construction: DLinear, LSTM, Mamba, and
-PatchTST. The notebooks provide an audited, chronological, leakage-safe
-workflow that evaluates both predictive quality and risk-adjusted trading
-performance across market regimes.
+PatchTST. This group project compares predictive quality and risk-adjusted
+trading performance across market regimes: periods distinguished by volatility
+and trend. The workflow uses chronological evaluation and safeguards that must
+be checked for each dataset and execution setup.
 
 ## Research gap
 
@@ -17,6 +18,8 @@ ranking.
 
 ## Models and contributors
 
+The existing model credits for this group project are:
+
 | Model | Worked by |
 |---|---|
 | DLinear | [Lakshmihollat](https://github.com/Lakshmihollat) |
@@ -24,7 +27,17 @@ ranking.
 | Mamba | [Aryan Soni](https://github.com/AryanSoni1609) |
 | PatchTST | [tanay](https://github.com/electro-glitch) |
 
-## Dataset
+## Dataset and current status
+
+The original benchmark uses the Kaggle data described below. The current runner
+rejects selected price series with missing values and selections of multiple
+market series because source close times and execution availability across
+markets remain unverified. Its default five-asset selection therefore cannot
+currently complete a new run.
+
+A future run using the [Kenneth R. French 10 Industry Portfolios (Daily)](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/Data_Library/det_10_ind_port.html)
+is pending data access and implementation. No French dataset benchmark results
+are reported here.
 
 The benchmark uses the **Global and Indian Financial Markets Dataset 2025**
 from [Kaggle](https://www.kaggle.com/datasets/muzaddidafaque/global-and-indian-financial-markets-dataset-2025).
@@ -37,17 +50,18 @@ data/kaggle_global_indian_markets/global-india-markets-macro/
 It contains the daily market file, the monthly macro file, and the source/code
 mapping used to verify provenance. The runner records file names, SHA-256
 hashes, schema, data types, date coverage, frequency, missing values,
-duplicate timestamps, asset identifiers, source fields, and the declared
-dataset license in `metadata/data_manifest.json`. Raw data is not committed to
+duplicate timestamps, asset identifiers, source fields, and license information
+in `metadata/data_manifest.json`. Verify the source license independently before
+using or redistributing the data. Raw data is not committed to
 Git and is excluded from result archives unless explicitly requested.
 
 ## Evaluation metrics
 
-Metrics are computed on untouched chronological test data after validation-only
-configuration selection. Unless stated otherwise, model statistics are
-aggregated over five seeds (`42, 52, 62, 72, 82`) and reported with the mean,
-standard deviation, and paired block-bootstrap confidence intervals where
-applicable.
+The evaluation is designed to use chronological test data after selecting
+configurations on validation data. Sharpe ratio measures return relative to
+volatility; mean squared error (MSE) measures prediction error. Transaction
+costs are expressed in basis points (one basis point is 0.01%). Each run must
+report its own seeds, dates, sample sizes, and uncertainty.
 
 | Dimension | Metrics and statistics |
 |---|---|
@@ -57,10 +71,11 @@ applicable.
 | Regime robustness | Sharpe, return, volatility, drawdown, sample count, and confidence interval for each volatility/trend regime; stress-regime degradation and rank stability. |
 | Compute and reliability | Parameter count, epoch duration, throughput, GPU memory/utilization, retry count, checkpoint/resume outcome, and failure timeline. |
 
-### Observed benchmark snapshot
+### Historical benchmark snapshot
 
 The following values come from the completed `full-validation` run of
-11 November 2026. They represent the first recorded walk-forward fold. They
+11 November 2026, before the later methodology audit. They represent one
+walk-forward fold, with 125 decision dates from 18 February to 9 August 2013. They
 use a 5 bps transaction-cost assumption, one evaluation fold, and five seeds;
 the Sharpe standard deviation is across seeds.
 
@@ -81,7 +96,7 @@ limitations. The date-split settings in the config do not describe fold 0.
 
 ## Information documents
 
-The flow is: audited Kaggle files → past-only features → chronological
+The intended flow is: reviewed data → past-only features → chronological
 train/validation/test folds → one bounded signal per asset → one portfolio
 sizing and fee pass → matched-date metrics and regime reports. DLinear is a
 DLinear-inspired signal model, and the PatchTST implementation is a compact
@@ -91,7 +106,7 @@ not part of the published four-model benchmark.
 
 For a synthetic CPU development environment, install pinned packages from
 `requirements.cpu.txt` in a local virtual environment and run only targeted
-tests. The full audited benchmark uses the pinned container. Reproduce any
+tests. The benchmark runner uses the pinned container. Reproduce any
 claim with the data hash, Git commit, resolved configuration, seeds, folds,
 fees, dependency lock, and complete run archive.
 
@@ -102,3 +117,5 @@ fees, dependency lock, and complete run archive.
   details.
 - [Final_Metrics.md](Final_Metrics.md) — metrics from the completed benchmark
   run.
+- [docs/audit-summary.md](docs/audit-summary.md) — methodology changes,
+  remaining market-timing restriction, and verification limits.

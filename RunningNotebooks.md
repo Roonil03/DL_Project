@@ -1,5 +1,11 @@
 # Running the notebook benchmark
 
+> **Current data restriction:** The benchmark rejects selected price series with
+> missing values and rejects multiple market series until close timestamps and
+> execution availability have been verified. The default five-asset selection
+> therefore cannot currently complete. Review the data and select an eligible
+> series before executing; a French industry-portfolio run is pending.
+
 This document contains the execution instructions for the notebook suite. The
 recommended path is the pinned CUDA Docker image; it keeps the host Python
 environment out of the audited run and fails fast when a requested GPU or real

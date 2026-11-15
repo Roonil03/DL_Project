@@ -1,5 +1,11 @@
 # CUDA Docker runtime
 
+> **Current data restriction:** The benchmark rejects selected price series with
+> missing values and rejects multiple market series until close timestamps and
+> execution availability have been verified. The default five-asset selection
+> therefore cannot currently complete. Review the data and select an eligible
+> series before executing; a French industry-portfolio run is pending.
+
 The benchmark image is pinned to CUDA 12.4, Python 3.11, and a CUDA-enabled
 PyTorch build. `uv` installs the interpreter and creates `/opt/venv`; all
 project packages are installed with `/opt/venv/bin/pip3`. Conda and the Mamba
