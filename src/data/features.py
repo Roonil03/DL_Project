@@ -69,3 +69,33 @@ def build_features(prices: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd
     
     return full_features, rets, vol_20, feature_dict
 
+
+def build_features_from_returns(returns: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, pd.DataFrame]]:
+    """Build the same features from decimal daily returns without inventing prices.
+
+    Missing rows are rejected instead of dropped: dropping one would turn the
+    next available observation into a false next-trading-day target. Select a
+    complete contiguous period or explicitly implement missing-data masks.
+    """
+    rets = returns.astype(float)
+    if rets.empty or not rets.index.is_unique or not rets.index.is_monotonic_increasing:
+        raise ValueError("Returns require a nonempty, unique, chronological index")
+    if not np.isfinite(rets.to_numpy()).all() or (rets < -1).any().any():
+        raise ValueError("Returns must be finite and at least -100%; do not forward-fill missing returns")
+    vol_20 = calculate_rolling_volatility(rets, 20)
+    vol_60 = calculate_rolling_volatility(rets, 60)
+    momenta = {window: (1 + rets).rolling(window, min_periods=window).apply(np.prod, raw=True) - 1
+               for window in (5, 20, 60)}
+    feature_frames = []
+    for asset in rets.columns:
+        feature_frames.append(pd.DataFrame({
+            f"{asset}_ret": rets[asset], f"{asset}_vol20": vol_20[asset],
+            f"{asset}_vol60": vol_60[asset], f"{asset}_mom5": momenta[5][asset],
+            f"{asset}_mom20": momenta[20][asset], f"{asset}_mom60": momenta[60][asset],
+        }, index=rets.index))
+    features = pd.concat(feature_frames, axis=1).replace([np.inf, -np.inf], np.nan).dropna()
+    idx = features.index
+    parts = {'returns': rets.loc[idx], 'vol_20': vol_20.loc[idx], 'vol_60': vol_60.loc[idx],
+             'mom_5': momenta[5].loc[idx], 'mom_20': momenta[20].loc[idx], 'mom_60': momenta[60].loc[idx]}
+    return features, parts['returns'], parts['vol_20'], parts
+

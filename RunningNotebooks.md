@@ -178,3 +178,17 @@ Extract the archive into a separate directory and inspect
 `Final_Metrics.md`, `metadata/run_manifest.json`, and `bundle_manifest.json`.
 The archive is a record of the completed run; rerunning is only necessary when
 changing the data, configuration, image, model set, or seed set.
+# Optional French industry data preparation
+
+For the separate US industry-return benchmark, run `python scripts/prepare_french_industry.py`.
+The command downloads the official daily 10-industry ZIP into the ignored
+`data/french_industry/` directory, validates it, and records its SHA-256 and
+retrieval time in a sidecar manifest. It refuses to overwrite an existing
+snapshot. If network access is unavailable, download the source ZIP linked in
+`src/data/french_industry.py` manually to
+`data/french_industry/10_Industry_Portfolios_daily_CSV.zip`; validate it with
+`FrenchIndustryAdapter(...).manifest()` before using it. Record the actual
+retrieval time if known. The data library reconstructs history on updates, so
+retain the exact ZIP for reproducibility; its copyright and redistribution
+terms must be checked separately. These are constructed US industry research
+portfolios, not directly tradable assets, and contain no macro series.
