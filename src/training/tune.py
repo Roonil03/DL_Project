@@ -112,11 +112,11 @@ def run_validation_tuning(full_train_val_df, model_class, criterion_factory, con
     return best_hyperparameters, best_model_state
 
 def bounded_model_candidates(model_name, models_config, learning_rates, max_trials=2):
-    """Return at most two comparable validation candidates, with one architecture change.
+    """Build at most two deterministic, model-specific validation trials.
 
-    Candidate zero uses the configured architecture. Candidate one halves one
-    model-specific width (subject to its attention head count) and uses the
-    second learning rate. Test data must not be passed to selection.
+    The second trial jointly changes learning rate and several architecture
+    dimensions; it is a small comparison, not a factorial search or evidence
+    of optimal settings. No test data is used to construct or select trials.
     """
     import copy
     if max_trials < 1 or not learning_rates:
@@ -132,15 +132,21 @@ def bounded_model_candidates(model_name, models_config, learning_rates, max_tria
         cfg = variant[model_name]
         field = fields[model_name]
         value = int(cfg[field])
-        if field == 'trend_window':
-            # Moving-average decomposition requires a positive odd kernel.
-            candidate = max(1, value // 2)
+        if model_name == 'dlinear':
+            candidate = max(3, value // 2)
             cfg[field] = candidate if candidate % 2 else candidate + 1
         elif model_name in ('patchtst', 'ahat_fin'):
-            heads = int(cfg['heads'])
+            heads = max(1, int(cfg['heads']) // 2)
+            cfg['heads'] = heads
             cfg[field] = max(heads, (value // (2 * heads)) * heads)
+            cfg['layers'] = max(1, int(cfg['layers']) - 1)
+            if model_name == 'patchtst':
+                cfg['patch_length'] = max(1, int(cfg['patch_length']) // 2)
         else:
             cfg[field] = max(1, value // 2)
+            cfg['layers'] = max(1, int(cfg['layers']) - 1)
+            if model_name == 'lstm':
+                cfg['dropout'] = 0.0 if float(cfg['dropout']) else 0.1
         candidates.append({'learning_rate': float(learning_rates[min(1, len(learning_rates)-1)]), 'models': variant})
     return candidates
 
