@@ -17,3 +17,7 @@ results/backtests/*.csv
 outputs/
 artifacts/
 *.zip
+.worktrees/
+.uv-cache/
+.venv-benchmark/
+.pytest_cache/

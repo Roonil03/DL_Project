@@ -26,3 +26,9 @@ results/backtests/*.csv
 outputs/
 artifacts/
 *.zip
+.worktrees/
+.uv-cache/
+.pytest_cache/
+tests/
+test_*.py
+*_test.py

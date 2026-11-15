@@ -58,16 +58,3 @@ src/runtime/experiment.py
 src/training/trainer.py
 src/training/tune.py
 src/visualization/performance.py
-tests/test_acceptance_integrity.py
-tests/test_ahat_fin.py
-tests/test_data_integrity.py
-tests/test_fred_sectors.py
-tests/test_india_indices.py
-tests/test_metrics_validation.py
-tests/test_optimizations.py
-tests/test_portfolio_objective.py
-tests/test_runner_support.py
-tests/test_validation_data.py
-tests/test_runtime_analysis.py
-tests/test_shapes.py
-tests/test_trainer_resume.py
