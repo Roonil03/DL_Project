@@ -192,3 +192,11 @@ retrieval time if known. The data library reconstructs history on updates, so
 retain the exact ZIP for reproducibility; its copyright and redistribution
 terms must be checked separately. These are constructed US industry research
 portfolios, not directly tradable assets, and contain no macro series.
+For the notebooks, set `DATASET_MODE=french_industry` and set `DATA_DIR` to
+that directory. The audit defaults to all ten industry columns; optional
+`FIN_ASSETS` is a comma-separated subset and must match during training.
+Run the audit first. Fold 0 tests 2008 and fold 1 tests 2020, each with five
+prior training years and the intervening validation year. Signals use data
+through the decision close and target the next US trading day's return. The
+regime classifier uses cumulative research returns as indices, not traded
+prices. These portfolios do not establish live execution or actual costs.

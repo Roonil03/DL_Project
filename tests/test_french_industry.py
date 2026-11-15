@@ -9,6 +9,7 @@ from src.data.french_industry import ASSETS, FrenchIndustryAdapter
 from src.data.features import build_features_from_returns
 from src.data.walk_forward import calendar_crisis_folds
 from src.data.windows import create_rolling_windows
+from src.data.french_benchmark import prepare_french_benchmark
 
 
 def make_zip(path, rows):
@@ -71,3 +72,25 @@ def test_crisis_folds_respect_boundaries_and_require_full_coverage():
         assert set(targets[test].year) == {year}
     with pytest.raises(ValueError, match='Insufficient coverage'):
         calendar_crisis_folds(decisions[:-260], targets[:-260], test_years=[2020])
+
+
+@pytest.mark.parametrize('fold,year', [(0, 2008), (1, 2020)])
+def test_benchmark_prepares_correct_targets_and_fold(fold, year):
+    dates = pd.bdate_range('2001-01-01', '2021-01-08')
+    source = pd.DataFrame({'NoDur': .001 * np.sin(np.arange(len(dates)) / 10)}, index=dates)
+    data = prepare_french_benchmark(source, ['NoDur'], fold, lookback=20)
+    test = data['masks']['test']
+    assert set(data['target_dates'][test].year) == {year}
+    assert data['target_dates'][test][0] > data['dates'][test][0]
+    np.testing.assert_allclose(data['y'][test, 0], source.loc[data['target_dates'][test], 'NoDur'], rtol=1e-6)
+    assert not data['masks']['train'][test].any()
+    assert np.isfinite(data['vol'][test]).all()
+
+
+def test_2008_fold_does_not_require_2020_data():
+    dates = pd.bdate_range('2001-01-01', '2009-01-08')
+    source = pd.DataFrame({'NoDur': .001 * np.sin(np.arange(len(dates)) / 10)}, index=dates)
+    data = prepare_french_benchmark(source, ['NoDur'], 0, lookback=20)
+    assert set(data['target_dates'][data['masks']['test']].year) == {2008}
+    with pytest.raises(ValueError, match='Insufficient coverage'):
+        prepare_french_benchmark(source, ['NoDur'], 1, lookback=20)
