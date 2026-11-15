@@ -9,7 +9,12 @@ from src.data.french_industry import ASSETS, FrenchIndustryAdapter
 from src.data.features import build_features_from_returns
 from src.data.walk_forward import calendar_crisis_folds
 from src.data.windows import create_rolling_windows
-from src.data.french_benchmark import prepare_french_benchmark
+from src.data.french_benchmark import prepare_french_benchmark, validate_french_config
+
+
+BASE_CONFIG = {'dataset': 'french_industry', 'source_file': '10_Industry_Portfolios_daily_CSV.zip',
+               'assets': list(ASSETS), 'returns': 'decimal_daily_value_weighted',
+               'folds': {'test_years': [2008, 2020], 'train_years': 5, 'validation_years': 1}}
 
 
 def make_zip(path, rows):
@@ -78,7 +83,7 @@ def test_crisis_folds_respect_boundaries_and_require_full_coverage():
 def test_benchmark_prepares_correct_targets_and_fold(fold, year):
     dates = pd.bdate_range('2001-01-01', '2021-01-08')
     source = pd.DataFrame({'NoDur': .001 * np.sin(np.arange(len(dates)) / 10)}, index=dates)
-    data = prepare_french_benchmark(source, ['NoDur'], fold, lookback=20)
+    data = prepare_french_benchmark(source, ['NoDur'], fold, lookback=20, config=BASE_CONFIG)
     test = data['masks']['test']
     assert set(data['target_dates'][test].year) == {year}
     assert data['target_dates'][test][0] > data['dates'][test][0]
@@ -90,10 +95,10 @@ def test_benchmark_prepares_correct_targets_and_fold(fold, year):
 def test_2008_fold_does_not_require_2020_data():
     dates = pd.bdate_range('2001-01-01', '2009-01-08')
     source = pd.DataFrame({'NoDur': .001 * np.sin(np.arange(len(dates)) / 10)}, index=dates)
-    data = prepare_french_benchmark(source, ['NoDur'], 0, lookback=20)
+    data = prepare_french_benchmark(source, ['NoDur'], 0, lookback=20, config=BASE_CONFIG)
     assert set(data['target_dates'][data['masks']['test']].year) == {2008}
     with pytest.raises(ValueError, match='Insufficient coverage'):
-        prepare_french_benchmark(source, ['NoDur'], 1, lookback=20)
+        prepare_french_benchmark(source, ['NoDur'], 1, lookback=20, config=BASE_CONFIG)
 
 
 def test_sentinels_outside_selected_fold_do_not_block_preparation(tmp_path):
@@ -109,10 +114,25 @@ def test_sentinels_outside_selected_fold_do_not_block_preparation(tmp_path):
     source = write_source({dates[0]})
     assert pd.isna(source.iloc[0, 0])
     for fold, year in ((0, 2008), (1, 2020)):
-        result = prepare_french_benchmark(source, ['NoDur'], fold, lookback=20)
+        result = prepare_french_benchmark(source, ['NoDur'], fold, lookback=20, config=BASE_CONFIG)
         assert set(result['target_dates'][result['masks']['test']].year) == {year}
     source = write_source({dates[0], pd.Timestamp('2003-06-02')})
     with pytest.raises(ValueError, match='do not forward-fill'):
-        prepare_french_benchmark(source, ['NoDur'], 0, lookback=20)
-    result = prepare_french_benchmark(source, ['NoDur'], 1, lookback=20)
+        prepare_french_benchmark(source, ['NoDur'], 0, lookback=20, config=BASE_CONFIG)
+    result = prepare_french_benchmark(source, ['NoDur'], 1, lookback=20, config=BASE_CONFIG)
     assert set(result['target_dates'][result['masks']['test']].year) == {2020}
+
+
+def test_config_changes_test_and_partition_years():
+    dates = pd.bdate_range('2012-01-01', '2021-01-08')
+    source = pd.DataFrame({'NoDur': .001 * np.sin(np.arange(len(dates)) / 10)}, index=dates)
+    config = {**BASE_CONFIG, 'assets': ['NoDur'],
+              'folds': {'test_years': [2019], 'train_years': 3, 'validation_years': 2}}
+    data = prepare_french_benchmark(source, ['NoDur'], 0, lookback=20, config=config)
+    assert set(data['target_dates'][data['masks']['test']].year) == {2019}
+    assert set(data['target_dates'][data['masks']['train']].year) == {2014, 2015, 2016}
+    assert set(data['target_dates'][data['masks']['val']].year) == {2017, 2018}
+    with pytest.raises(ValueError, match='outside available'):
+        prepare_french_benchmark(source, ['NoDur'], 1, lookback=20, config=config)
+    with pytest.raises(ValueError, match='test_years'):
+        validate_french_config({**config, 'folds': {**config['folds'], 'test_years': [2020, 2019]}})
