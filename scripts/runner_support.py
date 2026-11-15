@@ -25,9 +25,10 @@ def identity(root, data, options):
                 files[path.relative_to(root).as_posix()] = digest(path)
     for name in ('run_all_models.sh', 'Dockerfile', 'docker-compose.yml', 'requirements.docker.txt', 'requirements.mamba-compat.txt'):
         files[name] = digest(root / name)
-    for path in sorted(data.rglob('*')):
-        if path.is_file():
-            files['data/' + path.relative_to(data).as_posix()] = digest(path)
+    for name in dataset_files(options.get('dataset_mode', 'global_indian')):
+        rel = Path(name)
+        if safe_file(data, rel):
+            files['data/' + name] = digest(data / rel)
     return {'schema_version': '1.0', 'options': options, 'files': files}
 
 
@@ -45,8 +46,18 @@ def check_identity(run, value):
 
 
 # Only the documented dataset inputs may be distributed when explicitly requested.
-DATASET_FILES = ('daily_market_data.csv', 'monthly_macro_data.csv', 'codes_and_sources.md',
-                 '10_Industry_Portfolios_daily_CSV.zip')
+DATASET_INPUTS = {
+    'global_indian': ('daily_market_data.csv', 'monthly_macro_data.csv', 'codes_and_sources.md'),
+    'french_industry': ('10_Industry_Portfolios_daily_CSV.zip', '10_Industry_Portfolios_daily_CSV.manifest.json'),
+}
+DATASET_FILES = tuple(name for names in DATASET_INPUTS.values() for name in names)
+
+
+def dataset_files(mode):
+    try:
+        return DATASET_INPUTS[mode]
+    except KeyError as exc:
+        raise ValueError(f'Unsupported dataset mode: {mode}') from exc
 
 
 def safe_file(root, relative):

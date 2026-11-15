@@ -29,15 +29,15 @@ SEEDS="${SEEDS:-42,52,62,72,82}"
 DEVICE="${DEVICE:-gpu}"
 RESUME_MODE="${RESUME_MODE:-auto}"
 EPOCHS="${EPOCHS:-100}"
-FOLDS="${FOLDS:-0}"
+FOLDS="${FOLDS:-}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-outputs}"
 MAX_RETRIES="${MAX_RETRIES:-2}"
 INCLUDE_DATA="${INCLUDE_DATA:-0}"
 ESTIMATE_ONLY="${ESTIMATE_ONLY:-0}"
 DATASET_MODE="${DATASET_MODE:-global_indian}"
 case "$DATASET_MODE" in
-  global_indian) DATA_DIR="${DATA_DIR:-data/kaggle_global_indian_markets/global-india-markets-macro}"; FIN_ASSETS="${FIN_ASSETS:-NIFTY50,SP500,USDINR,GOLD,BRENT}" ;;
-  french_industry) DATA_DIR="${DATA_DIR:-data/french_industry}" ;;
+  global_indian) DATA_DIR="${DATA_DIR:-data/kaggle_global_indian_markets/global-india-markets-macro}"; FIN_ASSETS="${FIN_ASSETS:-NIFTY50,SP500,USDINR,GOLD,BRENT}"; FOLDS="${FOLDS:-0}" ;;
+  french_industry) DATA_DIR="${DATA_DIR:-data/french_industry}"; FOLDS="${FOLDS:-0,1}" ;;
   *) echo "Unsupported DATASET_MODE: $DATASET_MODE" >&2; exit 2 ;;
 esac
 PACKAGE_CHECKPOINTS="${PACKAGE_CHECKPOINTS:-0}"
@@ -167,6 +167,7 @@ MONITOR_PID=$!
 
 python - "$RUN_DIR" "$RUN_ID" "$DEVICE" "$RESUME_MODE" "$EPOCHS" "$MODELS" "$SEEDS" "$FOLDS" "$DATA_DIR" <<'PY'
 import hashlib, json, os, platform, subprocess, sys, torch
+from scripts.runner_support import dataset_files, safe_file
 from datetime import datetime, timezone
 from pathlib import Path
 run_dir=Path(sys.argv[1]); run_id,device,resume,epochs,models,seeds,folds,data_dir=sys.argv[2:]
@@ -176,8 +177,9 @@ def digest(path):
         for block in iter(lambda:f.read(1024*1024),b""): h.update(block)
     return h.hexdigest()
 files=[]
-for p in sorted(Path(data_dir).iterdir()):
-    if p.is_file(): files.append({"name":p.name,"bytes":p.stat().st_size,"sha256":digest(p)})
+for name in dataset_files(os.getenv("DATASET_MODE", "global_indian")):
+    p = Path(data_dir) / name
+    if safe_file(Path(data_dir), Path(name)): files.append({"name":p.name,"bytes":p.stat().st_size,"sha256":digest(p)})
 git=os.getenv("GIT_REVISION") or None
 if git is None:
     try: git=subprocess.check_output(["git","rev-parse","HEAD"],text=True,stderr=subprocess.DEVNULL).strip()

@@ -4,6 +4,7 @@ README.md
 RunningNotebooks.md
 configs/backtest.yaml
 configs/data.yaml
+configs/french_industry.yaml
 configs/models.yaml
 configs/regime.yaml
 configs/training.yaml
@@ -17,12 +18,16 @@ notebooks/README.md
 requirements.docker.txt
 requirements.mamba-compat.txt
 run_all_models.sh
+scripts/prepare_french_industry.py
 scripts/run_dl_benchmark.ps1
 scripts/runner_support.py
+scripts/source_snapshot.txt
 scripts/system_monitor.py
 src/backtest/backtester.py
 src/data/adapters.py
 src/data/features.py
+src/data/french_benchmark.py
+src/data/french_industry.py
 src/data/scaling.py
 src/data/splits.py
 src/data/walk_forward.py
@@ -49,10 +54,11 @@ src/visualization/performance.py
 tests/test_acceptance_integrity.py
 tests/test_ahat_fin.py
 tests/test_data_integrity.py
+tests/test_french_industry.py
 tests/test_metrics_validation.py
 tests/test_optimizations.py
+tests/test_portfolio_objective.py
 tests/test_runner_support.py
 tests/test_runtime_analysis.py
 tests/test_shapes.py
 tests/test_trainer_resume.py
-scripts/source_snapshot.txt

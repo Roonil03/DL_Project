@@ -6,7 +6,7 @@ param(
     [ValidateSet('dlinear','lstm','mamba','patchtst','ahat_fin')][string[]]$Models = @('dlinear','lstm','mamba','patchtst'),
     [ValidateSet('gpu')][string]$Device = 'gpu',
     [int[]]$Seeds = @(42,52,62,72,82),
-    [int[]]$Folds = @(0),
+    [int[]]$Folds = @(),
     [int]$Epochs = 100,
     [string]$RunId = '',
     [string]$OutputRoot = 'outputs',
@@ -21,6 +21,7 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Set-Location $root
 if (-not $RunId) { $RunId = 'run-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ') }
 if ($RunId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$' -or $RunId.Contains('..')) { throw 'RunId must be a safe folder name.' }
+if ($Folds.Count -eq 0) { if ($DatasetMode -eq 'french_industry') { $Folds = @(0,1) } else { $Folds = @(0) } }
 if ($Epochs -lt 1 -or $MaxRetries -lt 0 -or $Seeds.Count -eq 0 -or $Folds.Count -eq 0) { throw 'Epochs and seed/fold lists must be positive; retries cannot be negative.' }
 if ($Folds | Where-Object { $_ -lt 0 }) { throw 'Fold IDs must be nonnegative.' }
 if ($ForceFresh) { $ResumeMode = 'restart' }
