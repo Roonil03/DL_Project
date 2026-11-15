@@ -34,8 +34,10 @@ Mamba implementation is unavailable.
 The primary study uses the pinned third-party [Indian market historical dataset](https://github.com/aswinv90/indian-market-historical-data).
 Its NIFTY BANK, IT and PHARMA daily parquet files provide Close prices; the
 common panel begins in 2011 and covers the 2020 crisis. Returns calculated from
-those closes exclude dividends. The source permits noncommercial research and
-does not permit raw data redistribution. No new benchmark has been completed.
+those closes exclude dividends. The source permits noncommercial academic and
+personal use. Raw files are excluded from benchmark archives because rights to
+redistribute the underlying market data are unverified. No new benchmark has
+been completed.
 The pinned source commit is `1f4aff7c3e53a9f2bfb6a167b0d80f4d0c8f8bf9`.
 The local directory is `data/india_indices/`; it contains
 `NIFTY_BANK.parquet`, `NIFTY_IT.parquet`, `NIFTY_PHARMA.parquet`, and

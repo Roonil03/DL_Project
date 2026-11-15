@@ -41,8 +41,9 @@ at pinned commit `1f4aff7c3e53a9f2bfb6a167b0d80f4d0c8f8bf9`
 for NIFTY BANK, IT and PHARMA. Its common daily panel begins in 2011 and
 has 3,675 complete sessions from 31 January 2011 through 31 December 2025,
 including the 2020 crisis. Returns are derived from daily Close prices and exclude
-dividends. The source permits noncommercial research and does not permit raw
-redistribution. No new benchmark results are available.
+dividends. The source permits noncommercial academic and personal use. The
+benchmark excludes raw files from archives because redistribution rights for
+the underlying market data are unverified. No new benchmark results are available.
 
 An optional separate US comparison uses [FRED's Nasdaq US Large/Mid Cap sector
 total-return index panel](https://fred.stlouisfed.org/graph/fredgraph.csv?id=NASDAQNQUSB10LMT,NASDAQNQUSB20LMT,NASDAQNQUSB30LMT,NASDAQNQUSB50LMT,NASDAQNQUSB60LMT):
