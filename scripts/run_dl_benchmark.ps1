@@ -2,7 +2,7 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [string]$DatasetPath = '',
-    [ValidateSet('global_indian','french_industry')][string]$DatasetMode = 'global_indian',
+    [ValidateSet('global_indian','india_indices','fred_sectors')][string]$DatasetMode = 'india_indices',
     [ValidateSet('dlinear','lstm','mamba','patchtst','ahat_fin')][string[]]$Models = @('dlinear','lstm','mamba','patchtst'),
     [ValidateSet('gpu')][string]$Device = 'gpu',
     [int[]]$Seeds = @(42,52,62,72,82),
@@ -38,17 +38,57 @@ if ($Folds | Where-Object { $_ -lt 0 }) { throw 'Fold IDs must be nonnegative.' 
 if ($ForceFresh) { $ResumeMode = 'restart' }
 if ($PackageCheckpoints -and $ExcludeCheckpoints) { throw 'PackageCheckpoints and ExcludeCheckpoints cannot be combined.' }
 if (-not $DatasetPath) {
-    if ($DatasetMode -eq 'french_industry') { $DatasetPath = 'data\french_industry' }
+    if ($DatasetMode -eq 'india_indices') { $DatasetPath = 'data\india_indices' }
+    elseif ($DatasetMode -eq 'fred_sectors') { $DatasetPath = 'data\fred_nasdaq_sectors' }
     else { $DatasetPath = 'data\kaggle_global_indian_markets\global-india-markets-macro' }
 }
-$data = (Resolve-Path -LiteralPath $DatasetPath -ErrorAction Stop).Path
-$requiredFiles = if ($DatasetMode -eq 'french_industry') { @('10_Industry_Portfolios_daily_CSV.zip') } else { @('daily_market_data.csv','monthly_macro_data.csv','codes_and_sources.md') }
+$dataRoot = [IO.Path]::GetFullPath((Join-Path $root 'data'))
+$data = if ([IO.Path]::IsPathRooted($DatasetPath)) { [IO.Path]::GetFullPath($DatasetPath) } else { [IO.Path]::GetFullPath((Join-Path $root $DatasetPath)) }
+if (-not $data.StartsWith($dataRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'DatasetPath must be under the repository data directory mounted into Docker.' }
+$requiredFiles = if ($DatasetMode -eq 'india_indices') { @('NIFTY_BANK.parquet','NIFTY_IT.parquet','NIFTY_PHARMA.parquet','index_list.csv') } elseif ($DatasetMode -eq 'fred_sectors') { @('sector_indices.csv') } else { @('daily_market_data.csv','monthly_macro_data.csv','codes_and_sources.md') }
+if ($DatasetMode -eq 'india_indices') {
+    $hashes = @{
+        'NIFTY_BANK.parquet' = 'cb19fc783ac88fd0f57be97dab2b615a5be5bb86659925315170bb47deb7795c'
+        'NIFTY_IT.parquet' = '281106003c13169a69f91c9cb0709169bea5663cf04b2c733e6abafceb751aab'
+        'NIFTY_PHARMA.parquet' = '71e517166f82e12a0a2740222d34d47d10d4a2b104c940636762bd09a6bd3ded'
+        'index_list.csv' = 'c164b2e1ce9cef2df67f98ee695b25684cc6be360a0999465f0a283260ba5292'
+    }
+    $baseUrl = 'https://raw.githubusercontent.com/aswinv90/indian-market-historical-data/1f4aff7c3e53a9f2bfb6a167b0d80f4d0c8f8bf9/data/INDICES/'
+    foreach ($name in $requiredFiles) {
+        $file = Join-Path $data $name
+        if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+            if ($WhatIfPreference) { Write-Host "Would download pinned Indian data to $data"; return }
+            New-Item -ItemType Directory -Path $data -Force | Out-Null
+            $temporary = "$file.download"
+            try {
+                Invoke-WebRequest -Uri ($baseUrl + $name) -OutFile $temporary -TimeoutSec 60
+                if ((Get-FileHash -LiteralPath $temporary -Algorithm SHA256).Hash.ToLowerInvariant() -ne $hashes[$name]) { throw "Checksum mismatch: $name" }
+                Move-Item -LiteralPath $temporary -Destination $file
+            } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary } }
+        }
+        if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -ne $hashes[$name]) { throw "Existing snapshot checksum mismatch: $name" }
+    }
+}
+$sectorFile = Join-Path $data 'sector_indices.csv'
+if ($DatasetMode -eq 'fred_sectors' -and -not (Test-Path -LiteralPath $sectorFile -PathType Leaf)) {
+    if ($WhatIfPreference) { Write-Host "Would download FRED CSV to $sectorFile"; return }
+    New-Item -ItemType Directory -Path $data -Force | Out-Null
+    $temporary = "$sectorFile.download"
+    $url = 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=NASDAQNQUSB10LMT,NASDAQNQUSB20LMT,NASDAQNQUSB30LMT,NASDAQNQUSB50LMT,NASDAQNQUSB60LMT'
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $temporary -TimeoutSec 60
+        $expected = 'observation_date,NASDAQNQUSB10LMT,NASDAQNQUSB20LMT,NASDAQNQUSB30LMT,NASDAQNQUSB50LMT,NASDAQNQUSB60LMT'
+        if ((Get-Content -LiteralPath $temporary -TotalCount 1) -ne $expected) { throw 'Downloaded file has unexpected FRED CSV header.' }
+        Move-Item -LiteralPath $temporary -Destination $sectorFile
+        $env:FIN_DATA_RETRIEVED_AT = [DateTime]::UtcNow.ToString('o')
+    } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary } }
+}
 foreach ($name in $requiredFiles) {
     $file = Join-Path $data $name
     if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or (Get-Item -LiteralPath $file).Length -eq 0) { throw "Missing or empty dataset input: $file" }
 }
-$dataRoot = [IO.Path]::GetFullPath((Join-Path $root 'data'))
-if (-not $data.StartsWith($dataRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'DatasetPath must be under the repository data directory mounted into Docker.' }
+$data = (Resolve-Path -LiteralPath $data -ErrorAction Stop).Path
+if (-not $data.StartsWith($dataRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Resolved DatasetPath must be under the repository data directory mounted into Docker.' }
 $containerData = '/home/jovyan/work/data/' + $data.Substring($dataRoot.Length + 1).Replace('\','/')
 $output = [IO.Path]::GetFullPath((Join-Path $root $OutputRoot))
 if (-not $output.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'OutputRoot must be inside the repository.' }
@@ -62,7 +102,7 @@ if (-not $env:JUPYTER_TOKEN) { throw 'Set a nonempty JUPYTER_TOKEN in your Power
 $plan = @{
     run_id=$RunId; model_names=$Models; seeds=$Seeds; folds=$Folds; device=$Device
     epochs=$Epochs; resume_mode=$ResumeMode; dataset=$data; output=$run
-    fold_selection=if ($Folds.Count -eq 0) { 'auto from French configuration' } else { 'explicit' }
+    fold_selection=if ($Folds.Count -eq 0) { 'auto from dataset configuration' } else { 'explicit' }
     estimate_only=[bool]$EstimateOnly; checkpoint_archive=(-not [bool]$ExcludeCheckpoints)
 }
 Write-Host ('Planned run: ' + ($plan | ConvertTo-Json -Compress -Depth 5))
@@ -84,13 +124,13 @@ try {
     & docker info *> $null
     if ($LASTEXITCODE -ne 0) { throw 'Docker daemon unavailable. Start Docker Desktop and retry.' }
     # Reuse an existing CUDA image; build only when it is absent.
-    & docker image inspect fin-dl-benchmark:cuda12.4 *> $null
+    & docker image inspect fin-dl-benchmark:cuda12.4-india1 *> $null
     if ($LASTEXITCODE -ne 0) {
         Write-Host 'CUDA image is not present locally; building it once.'
         & docker compose build --pull jupyter
         if ($LASTEXITCODE -ne 0) { throw 'Docker build failed' }
     } else {
-        Write-Host 'Reusing local image fin-dl-benchmark:cuda12.4.'
+        Write-Host 'Reusing local image fin-dl-benchmark:cuda12.4-india1.'
     }
     & docker compose up -d jupyter
     if ($LASTEXITCODE -ne 0) { throw 'Could not start the rebuilt Jupyter container.' }

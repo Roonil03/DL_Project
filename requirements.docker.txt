@@ -9,6 +9,7 @@
 # substituting a mismatched wheel if an index mirror serves corrupt content.
 numpy==1.26.4
 pandas==2.2.3
+pyarrow==19.0.1
 scikit-learn==1.5.2
 matplotlib==3.9.2
 seaborn==0.13.2

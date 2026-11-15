@@ -4,7 +4,7 @@ from pathlib import Path
 import zipfile
 
 import pytest
-from scripts.runner_support import bundle, check_identity, snapshot, identity, resolve_french_folds
+from scripts.runner_support import bundle, check_identity, snapshot, identity, resolve_fred_folds
 
 
 def test_identity_prevents_reusing_markers_after_inputs_change(tmp_path):
@@ -55,18 +55,13 @@ def test_dataset_archive_uses_allowlist_and_omits_secrets(tmp_path):
     data = tmp_path / 'data'
     data.mkdir()
     for name in ('daily_market_data.csv', 'monthly_macro_data.csv', 'codes_and_sources.md',
-                 '10_Industry_Portfolios_daily_CSV.zip', '.env', '.env.local', 'credentials.json'):
+                 'sector_indices.csv', '.env', '.env.local', 'credentials.json'):
         (data / name).write_text(name)
     (data / 'nested').mkdir()
     (data / 'nested' / '.env').write_text('secret')
     archive = tmp_path / 'bundle.zip'
-    bundle(run, archive, data=data)
-    with zipfile.ZipFile(archive) as z:
-        manifest = json.loads(z.read('run/bundle_manifest.json'))
-        assert {name for name in z.namelist() if name.startswith('dataset/')} == {
-            'dataset/daily_market_data.csv', 'dataset/monthly_macro_data.csv',
-            'dataset/codes_and_sources.md', 'dataset/10_Industry_Portfolios_daily_CSV.zip'}
-        assert {x['path'] for x in manifest['files']} == set(z.namelist()) - {'run/bundle_manifest.json'}
+    with pytest.raises(ValueError, match='packaging is disabled'):
+        bundle(run, archive, data=data)
 
 
 def test_snapshot_uses_only_explicit_files_and_removes_stale_files(tmp_path):
@@ -94,9 +89,8 @@ def test_dataset_archive_skips_symlinked_input(tmp_path):
     except OSError:
         pytest.skip('Creating symlinks requires host privileges')
     archive = tmp_path / 'bundle.zip'
-    bundle(run, archive, data=data)
-    with zipfile.ZipFile(archive) as z:
-        assert 'dataset/daily_market_data.csv' not in z.namelist()
+    with pytest.raises(ValueError, match='packaging is disabled'):
+        bundle(run, archive, data=data)
 
 
 def test_identity_hashes_only_selected_dataset_and_sidecar(tmp_path):
@@ -106,16 +100,16 @@ def test_identity_hashes_only_selected_dataset_and_sidecar(tmp_path):
     for name in ('run_all_models.sh', 'Dockerfile', 'docker-compose.yml', 'requirements.docker.txt', 'requirements.mamba-compat.txt'):
         (root / name).write_text(name)
     data = tmp_path / 'data'; data.mkdir()
-    for name in ('10_Industry_Portfolios_daily_CSV.zip', '10_Industry_Portfolios_daily_CSV.manifest.json', 'daily_market_data.csv', '.env'):
+    for name in ('sector_indices.csv', 'sector_indices.manifest.json', 'daily_market_data.csv', '.env'):
         (data / name).write_text(name)
-    options = {'dataset_mode': 'french_industry'}
+    options = {'dataset_mode': 'fred_sectors'}
     original = identity(root, data, options)
     assert set(k for k in original['files'] if k.startswith('data/')) == {
-        'data/10_Industry_Portfolios_daily_CSV.zip', 'data/10_Industry_Portfolios_daily_CSV.manifest.json'}
+        'data/sector_indices.csv', 'data/sector_indices.manifest.json'}
     (data / '.env').write_text('changed secret')
     (data / 'daily_market_data.csv').write_text('unrelated')
     assert identity(root, data, options) == original
-    (data / '10_Industry_Portfolios_daily_CSV.manifest.json').write_text('changed')
+    (data / 'sector_indices.manifest.json').write_text('changed')
     assert identity(root, data, options) != original
 
 
@@ -130,31 +124,31 @@ def test_snapshot_covers_tracked_source_files():
     assert listed == set(result.stdout.splitlines())
 
 
-def test_french_notebook_defaults_match_config(monkeypatch):
+def test_fred_notebook_defaults_match_config(monkeypatch):
     import ast
     import os
     import yaml
     root = Path(__file__).resolve().parents[1]
-    config = yaml.safe_load((root / 'configs/french_industry.yaml').read_text())
+    config = yaml.safe_load((root / 'configs/fred_sectors.yaml').read_text())
     monkeypatch.delenv('FIN_ASSETS', raising=False)
     for notebook, target in [('10_data_audit.ipynb', 'selected'), ('20_benchmark.ipynb', 'assets')]:
         content = json.loads((root / 'notebooks' / notebook).read_text(encoding='utf-8'))
         text = '\n'.join(''.join(cell.get('source', [])) for cell in content['cells'])
-        candidates = [line.strip() for line in text.splitlines() if line.strip().startswith(target + ' = ') and "os.getenv('FIN_ASSETS'" in line and " or list(" in line]
+        candidates = [line.strip() for line in text.splitlines() if line.strip().startswith(target + ' = ') and "os.getenv('FIN_ASSETS'" in line and " or list(" in line and ("fred_config" in line or "configs['fred_sectors']" in line)]
         assert len(candidates) == 1
         expression = ast.parse(candidates[0]).body[0].value
         actual = eval(compile(ast.Expression(expression), '<notebook default>', 'eval'),
-                      {'os': os, 'french_config': config, 'configs': {'french_industry': config}})
-        assert actual == config['assets'] and len(actual) == 10
+                      {'os': os, 'fred_config': config, 'configs': {'fred_sectors': config}})
+        assert actual == config['assets'] and len(actual) == 5
     runner = (root / 'run_all_models.sh').read_text()
-    french_case = next(line for line in runner.splitlines() if line.strip().startswith('french_industry)'))
-    assert 'FIN_ASSETS' not in french_case
-    assert 'french-folds configs/french_industry.yaml' in french_case
+    fred_case = next(line for line in runner.splitlines() if line.strip().startswith('fred_sectors)'))
+    assert 'FIN_ASSETS' not in fred_case
+    assert 'fred-folds configs/fred_sectors.yaml' in fred_case
     assert config['folds']['test_years'] == [2008, 2020]
 
 
 @pytest.mark.parametrize('mode,expected', [
-    ('french_industry', {'10_Industry_Portfolios_daily_CSV.zip', '10_Industry_Portfolios_daily_CSV.manifest.json'}),
+    ('fred_sectors', {'sector_indices.csv', 'sector_indices.manifest.json'}),
     ('global_indian', {'daily_market_data.csv', 'monthly_macro_data.csv', 'codes_and_sources.md'}),
 ])
 def test_audit_inventory_ignores_unrelated_files(tmp_path, mode, expected):
@@ -166,7 +160,7 @@ def test_audit_inventory_ignores_unrelated_files(tmp_path, mode, expected):
         (tmp_path / name).write_text(name)
     rows = []
     pd = SimpleNamespace(DataFrame=lambda values: rows.extend(values) or values)
-    env = {'DATASET_MODE': mode, 'DATA_PATH': tmp_path / ('10_Industry_Portfolios_daily_CSV.zip' if mode == 'french_industry' else 'daily_market_data.csv'),
+    env = {'DATASET_MODE': mode, 'DATA_PATH': tmp_path / ('sector_indices.csv' if mode == 'fred_sectors' else 'daily_market_data.csv'),
            'MACRO_PATH': tmp_path / 'monthly_macro_data.csv', 'pd': pd, 'hashlib': hashlib,
            'display': lambda value: None, 'adapter': SimpleNamespace(manifest=lambda: {'source_page': 'test'})}
     exec(cell, env)
@@ -232,26 +226,26 @@ def test_french_fold_defaults_follow_validated_config(tmp_path, monkeypatch, yea
     import types
     import yaml
     root = Path(__file__).resolve().parents[1]
-    config = yaml.safe_load((root / 'configs/french_industry.yaml').read_text())
+    config = yaml.safe_load((root / 'configs/fred_sectors.yaml').read_text())
     config['folds']['test_years'] = years
     config_file = tmp_path / 'french.yaml'
     config_file.write_text(yaml.safe_dump(config))
     # Execute the project's actual validation function without importing its
     # unrelated training dependencies into this lightweight runner test.
-    source = ast.parse((root / 'src/data/french_benchmark.py').read_text())
-    validator = next(node for node in source.body if isinstance(node, ast.FunctionDef) and node.name == 'validate_french_config')
+    source = ast.parse((root / 'src/data/fred_benchmark.py').read_text())
+    validator = next(node for node in source.body if isinstance(node, ast.FunctionDef) and node.name == 'validate_fred_config')
     namespace = {'ASSETS': config['assets']}
     exec(compile(ast.Module(body=[validator], type_ignores=[]), '<validator>', 'exec'), namespace)
-    module = types.ModuleType('src.data.french_benchmark')
-    module.validate_french_config = namespace['validate_french_config']
-    monkeypatch.setitem(sys.modules, 'src.data.french_benchmark', module)
-    assert resolve_french_folds(config_file) == expected
-    assert resolve_french_folds(config_file, str(expected[-1])) == [expected[-1]]
+    module = types.ModuleType('src.data.fred_benchmark')
+    module.validate_fred_config = namespace['validate_fred_config']
+    monkeypatch.setitem(sys.modules, 'src.data.fred_benchmark', module)
+    assert resolve_fred_folds(config_file) == expected
+    assert resolve_fred_folds(config_file, str(expected[-1])) == [expected[-1]]
     with pytest.raises(ValueError, match='range'):
-        resolve_french_folds(config_file, str(len(years)))
+        resolve_fred_folds(config_file, str(len(years)))
     with pytest.raises(ValueError, match='comma-separated'):
-        resolve_french_folds(config_file, '-1')
+        resolve_fred_folds(config_file, '-1')
     config['folds']['test_years'] = []
     config_file.write_text(yaml.safe_dump(config))
     with pytest.raises(ValueError, match='test_years'):
-        resolve_french_folds(config_file)
+        resolve_fred_folds(config_file)

@@ -1,0 +1,8 @@
+dataset: india_indices
+source_file: index_list.csv
+assets: [NIFTY_BANK, NIFTY_IT, NIFTY_PHARMA]
+returns: index_price_return
+folds:
+  test_years: [2020, 2023]
+  train_years: 5
+  validation_years: 1

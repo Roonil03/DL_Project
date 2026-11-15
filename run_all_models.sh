@@ -7,7 +7,7 @@ IFS=$'\n\t'
 if [[ "${IN_CONTAINER:-0}" != "1" ]]; then
   command -v docker >/dev/null 2>&1 || { echo "docker is required" >&2; exit 2; }
   docker info >/dev/null 2>&1 || { echo "Docker daemon unavailable; start Docker Desktop and retry" >&2; exit 2; }
-  docker image inspect fin-dl-benchmark:cuda12.4 >/dev/null 2>&1 || docker compose build --pull jupyter
+  docker image inspect fin-dl-benchmark:cuda12.4-india1 >/dev/null 2>&1 || docker compose build --pull jupyter
   docker compose up -d jupyter
   exec docker compose exec -T \
     -e IN_CONTAINER=1 \
@@ -35,13 +35,17 @@ OUTPUT_ROOT="${OUTPUT_ROOT:-outputs}"
 MAX_RETRIES="${MAX_RETRIES:-2}"
 INCLUDE_DATA="${INCLUDE_DATA:-0}"
 ESTIMATE_ONLY="${ESTIMATE_ONLY:-0}"
-DATASET_MODE="${DATASET_MODE:-global_indian}"
+DATASET_MODE="${DATASET_MODE:-india_indices}"
 case "$DATASET_MODE" in
   global_indian) DATA_DIR="${DATA_DIR:-data/kaggle_global_indian_markets/global-india-markets-macro}"; FIN_ASSETS="${FIN_ASSETS:-NIFTY50,SP500,USDINR,GOLD,BRENT}"; FOLDS="${FOLDS:-0}" ;;
-  french_industry) DATA_DIR="${DATA_DIR:-data/french_industry}"; FOLDS="$(python scripts/runner_support.py french-folds configs/french_industry.yaml "$FOLDS")" ;;
+  india_indices) DATA_DIR="${DATA_DIR:-data/india_indices}"; FOLDS="$(python scripts/runner_support.py fred-folds configs/india_indices.yaml "$FOLDS" --mode india_indices)" ;;
+  fred_sectors) DATA_DIR="${DATA_DIR:-data/fred_nasdaq_sectors}"; FOLDS="$(python scripts/runner_support.py fred-folds configs/fred_sectors.yaml "$FOLDS")" ;;
   *) echo "Unsupported DATASET_MODE: $DATASET_MODE" >&2; exit 2 ;;
 esac
 PACKAGE_CHECKPOINTS="${PACKAGE_CHECKPOINTS:-1}"
+if [[ "$INCLUDE_DATA" == "1" ]]; then
+  echo "Raw source data are excluded from archives; INCLUDE_DATA=1 is disabled" >&2; exit 2
+fi
 
 # Notebook execution changes its working directory to `notebooks/`; resolve
 # all host-provided paths before launching nbconvert so every notebook writes
@@ -51,6 +55,20 @@ DATA_DIR="$(realpath -m -- "$DATA_DIR")"
 export PROJECT_ROOT="$ROOT" OUTPUT_ROOT DATA_DIR
 GIT_REVISION="${GIT_REVISION:-$(git rev-parse HEAD 2>/dev/null || true)}"
 export GIT_REVISION DATASET_MODE
+
+# Prepare missing input snapshots before binding the run identity. Existing
+# files are never overwritten; the India downloader verifies pinned hashes.
+if [[ "$DATASET_MODE" == "india_indices" ]]; then
+  missing=0
+  for file in NIFTY_BANK.parquet NIFTY_IT.parquet NIFTY_PHARMA.parquet index_list.csv; do
+    [[ -f "$DATA_DIR/$file" ]] || missing=1
+  done
+  if [[ "$missing" == "1" ]]; then
+    python scripts/prepare_india_indices.py "$DATA_DIR" || { echo "Indian data preparation failed" >&2; exit 2; }
+  fi
+elif [[ "$DATASET_MODE" == "fred_sectors" && ! -f "$DATA_DIR/sector_indices.csv" ]]; then
+  python scripts/prepare_fred_sectors.py "$DATA_DIR/sector_indices.csv" || { echo "FRED data preparation failed" >&2; exit 2; }
+fi
 
 [[ "$RUN_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$RUN_ID" != *..* ]] || { echo "Invalid RUN_ID" >&2; exit 2; }
 [[ "$DEVICE" == "gpu" || "$DEVICE" == "cpu" ]] || { echo "DEVICE must be gpu or cpu" >&2; exit 2; }
@@ -130,8 +148,12 @@ if [[ "$DATASET_MODE" == "global_indian" ]]; then
   for file in daily_market_data.csv monthly_macro_data.csv codes_and_sources.md; do
     [[ -s "$DATA_DIR/$file" ]] || fail "missing or empty dataset file $DATA_DIR/$file"
   done
+elif [[ "$DATASET_MODE" == "india_indices" ]]; then
+  for file in NIFTY_BANK.parquet NIFTY_IT.parquet NIFTY_PHARMA.parquet index_list.csv; do
+    [[ -s "$DATA_DIR/$file" ]] || fail "missing $DATA_DIR/$file; run python scripts/prepare_india_indices.py"
+  done
 else
-  [[ -s "$DATA_DIR/10_Industry_Portfolios_daily_CSV.zip" ]] || fail "missing or empty French industry ZIP"
+  [[ -s "$DATA_DIR/sector_indices.csv" ]] || fail "missing FRED sector CSV; run python scripts/prepare_fred_sectors.py or supply DATA_DIR"
 fi
 
 event preflight_started
@@ -178,7 +200,7 @@ def digest(path):
         for block in iter(lambda:f.read(1024*1024),b""): h.update(block)
     return h.hexdigest()
 files=[]
-for name in dataset_files(os.getenv("DATASET_MODE", "global_indian")):
+for name in dataset_files(os.getenv("DATASET_MODE", "india_indices")):
     p = Path(data_dir) / name
     if safe_file(Path(data_dir), Path(name)): files.append({"name":p.name,"bytes":p.stat().st_size,"sha256":digest(p)})
 git=os.getenv("GIT_REVISION") or None
@@ -188,7 +210,7 @@ if git is None:
 manifest={"schema_version":"1.0","timestamp_utc":datetime.now(timezone.utc).isoformat(),
  "run_id":run_id,"git_revision":git,"device":device,"resume_mode":resume,"epochs":int(epochs),
  "models":models.split(','),"seeds":[int(x) for x in seeds.split(',')],"folds":folds.split(','),
- "data_files":files,"dataset_mode":os.getenv("DATASET_MODE", "global_indian")}
+ "data_files":files,"dataset_mode":os.getenv("DATASET_MODE", "india_indices")}
 (run_dir/"metadata"/"run_manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
 system={"platform":platform.platform(),"python":platform.python_version(),"torch":torch.__version__,
  "cuda_available":torch.cuda.is_available(),"cuda_runtime":torch.version.cuda,
@@ -215,8 +237,11 @@ execute_notebook() {
 
 export RUN_ID OUTPUT_ROOT DEVICE RESUME_MODE EPOCHS DATASET_MODE
 export FIN_ASSETS="${FIN_ASSETS:-}" FIN_DATA_RETRIEVED_AT="${FIN_DATA_RETRIEVED_AT:-}"
-if [[ "$DATASET_MODE" == "french_industry" ]]; then
-  export FIN_DATA_PATH="$DATA_DIR/10_Industry_Portfolios_daily_CSV.zip"
+if [[ "$DATASET_MODE" == "india_indices" ]]; then
+  export FIN_DATA_PATH="$DATA_DIR/index_list.csv"
+  unset FIN_MACRO_PATH
+elif [[ "$DATASET_MODE" == "fred_sectors" ]]; then
+  export FIN_DATA_PATH="$DATA_DIR/sector_indices.csv"
   unset FIN_MACRO_PATH
 else
   export FIN_DATA_PATH="$DATA_DIR/daily_market_data.csv"

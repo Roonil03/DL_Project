@@ -1,4 +1,4 @@
-"""Download and validate one immutable local snapshot of the official ZIP."""
+"""Download and validate one immutable local snapshot of the official CSV."""
 from __future__ import annotations
 
 import json
@@ -9,7 +9,7 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.data.french_industry import DEFAULT_PATH, SOURCE_URL, FrenchIndustryAdapter
+from src.data.fred_sectors import DEFAULT_PATH, SOURCE_URL, FredSectorsAdapter
 
 
 def main():
@@ -26,7 +26,7 @@ def main():
     try:
         temporary.write_bytes(data)
         retrieved = datetime.now(timezone.utc).isoformat()
-        manifest = FrenchIndustryAdapter(temporary).manifest(retrieved_at_utc=retrieved)
+        manifest = FredSectorsAdapter(temporary).manifest(retrieved_at_utc=retrieved)
         temporary.replace(destination)
         manifest['path'] = str(destination)
         destination.with_suffix('.manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')

@@ -88,7 +88,7 @@ RUN /opt/venv/bin/pip3 install --no-cache-dir --force-reinstall --no-deps \
         -r /tmp/requirements.mamba-compat.txt \
     && rm -f /tmp/requirements.mamba-compat.txt
 
-ENV BENCHMARK_IMAGE=fin-dl-benchmark:cuda12.4
+ENV BENCHMARK_IMAGE=fin-dl-benchmark:cuda12.4-india1
 
 # Copy source and orchestration assets into the image. Compose mounts data,
 # notebooks, source, configs and outputs for live local runs.
