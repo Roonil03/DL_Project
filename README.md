@@ -1,21 +1,25 @@
-# Regime-Robust Financial Deep Learning Benchmark
+# Benchmarking Deep Learning Architectures for Financial Time-Series Prediction and Risk Optimization under Market Regimes
 
 This project benchmarks four neural architectures for financial time-series
 signal generation and portfolio construction: DLinear, LSTM, Mamba, and
-PatchTST. The notebooks provide an audited, chronological, leakage-safe
-workflow that evaluates both predictive quality and risk-adjusted trading
-performance across market regimes.
+PatchTST. This group project compares predictive quality and risk-adjusted
+trading performance across market regimes: periods distinguished by volatility
+and trend. The workflow uses chronological evaluation and safeguards that must
+be checked for each dataset and execution setup.
 
 ## Research gap
 
 Many financial deep-learning comparisons report one aggregate forecasting or
 Sharpe score. That can hide failures during high-volatility, bearish, or crisis
-periods. This project addresses the gap by comparing architectures on an
-independent multi-market dataset with regime-specific risk, trading-cost,
-uncertainty, and compute analysis rather than relying on a single aggregate
-ranking.
+periods. This project studies architecture comparisons with regime-specific
+risk, trading-cost, uncertainty, and compute analysis rather than relying on
+a single aggregate ranking. The primary study focuses on Indian sectors; a
+separate US sector comparison and the historical multi-market run have
+different datasets and limitations.
 
 ## Models and contributors
+
+The existing model credits for this group project are:
 
 | Model | Worked by |
 |---|---|
@@ -24,9 +28,41 @@ ranking.
 | Mamba | [Aryan Soni](https://github.com/AryanSoni1609) |
 | PatchTST | [tanay](https://github.com/electro-glitch) |
 
-## Dataset
+## Dataset and current status
 
-The benchmark uses the **Global and Indian Financial Markets Dataset 2025**
+The original benchmark uses the Kaggle data described below. In that dataset
+mode the current runner rejects selected price series with missing values and selections of multiple
+market series because source close times and execution availability across
+markets remain unverified. Its default five-asset selection therefore cannot
+currently complete a new run.
+
+The completed primary `india-study` run uses the [Indian market historical dataset](https://github.com/aswinv90/indian-market-historical-data)
+for NIFTY BANK, IT and PHARMA. Its common daily panel begins in 2011 and
+has 3,675 complete sessions from 31 January 2011 through 31 December 2025,
+including the 2020 crisis. Returns are derived from daily Close prices and exclude
+dividends. The source permits noncommercial academic and personal use. The
+benchmark excludes raw files from archives because redistribution rights for
+the underlying market data are unverified. The run completed 40 model/seed/fold
+units on 15 November 2026, testing calendar years 2020 and 2023.  
+See the
+[run review](docs/analysis-2026-11-15.md) for its hash, actual dates and limits.
+
+An optional separate US comparison uses [FRED's Nasdaq US Large/Mid Cap sector
+total-return index panel](https://fred.stlouisfed.org/graph/fredgraph.csv?id=NASDAQNQUSB10LMT,NASDAQNQUSB20LMT,NASDAQNQUSB30LMT,NASDAQNQUSB50LMT,NASDAQNQUSB60LMT):
+technology, health, financials, industrials and
+energy. The reviewed local snapshot spans 30 March 2001 to 13 November 2026,
+with 6,518 complete trading rows and 168 all-missing holiday rows shared by
+all series, with no partially missing rows. It contains 253 complete rows in
+2008 and 257 in 2020. Returns are derived from percentage changes in index
+levels. These are indices, not tradable ETFs. Nasdaq
+claims copyright and requires pre-approval for redistribution. No US sector
+benchmark has been run or results reported.
+
+These are separate studies: the US panel is not a worldwide market sample.
+Keep Indian, US, and legacy mixed-market results separate rather than pooling
+their rankings across datasets.
+
+The historical benchmark used the **Global and Indian Financial Markets Dataset 2025**
 from [Kaggle](https://www.kaggle.com/datasets/muzaddidafaque/global-and-indian-financial-markets-dataset-2025).
 The audited input directory is:
 
@@ -37,17 +73,18 @@ data/kaggle_global_indian_markets/global-india-markets-macro/
 It contains the daily market file, the monthly macro file, and the source/code
 mapping used to verify provenance. The runner records file names, SHA-256
 hashes, schema, data types, date coverage, frequency, missing values,
-duplicate timestamps, asset identifiers, source fields, and the declared
-dataset license in `metadata/data_manifest.json`. Raw data is not committed to
-Git and is excluded from result archives unless explicitly requested.
+duplicate timestamps, asset identifiers, source fields, and license information
+in `metadata/data_manifest.json`. Verify the source license independently before
+using or redistributing the data. Raw data is not committed to
+Git and is excluded from result archives.
 
 ## Evaluation metrics
 
-Metrics are computed on untouched chronological test data after validation-only
-configuration selection. Unless stated otherwise, model statistics are
-aggregated over five seeds (`42, 52, 62, 72, 82`) and reported with the mean,
-standard deviation, and paired block-bootstrap confidence intervals where
-applicable.
+The evaluation is designed to use chronological test data after selecting
+configurations on validation data. Sharpe ratio measures return relative to
+volatility; mean squared error (MSE) measures prediction error. Transaction
+costs are expressed in basis points (one basis point is 0.01%). Each run must
+report its own seeds, dates, sample sizes, and uncertainty.
 
 | Dimension | Metrics and statistics |
 |---|---|
@@ -57,31 +94,29 @@ applicable.
 | Regime robustness | Sharpe, return, volatility, drawdown, sample count, and confidence interval for each volatility/trend regime; stress-regime degradation and rank stability. |
 | Compute and reliability | Parameter count, epoch duration, throughput, GPU memory/utilization, retry count, checkpoint/resume outcome, and failure timeline. |
 
-### Observed benchmark snapshot
+### Completed Indian sector study
 
-The following values come from the completed `full-validation` run of
-11 November 2026. They represent the first recorded walk-forward fold. They
-use a 5 bps transaction-cost assumption, one evaluation fold, and five seeds;
-the Sharpe standard deviation is across seeds.
+At 5 bps, mean Sharpe across five seeds and two test years is 0.3801 for
+DLinear, -0.2994 for LSTM, -0.1809 for Mamba and -0.6360 for PatchTST. The
+long/cash 20-session trend baseline averages 2.3317 and exceeds every neural
+seed in each year. DLinear's yearly means change from 1.4300 in 2020 to -0.6698
+in 2023. This run does not establish a stable neural advantage.
 
-| Model | Mean Sharpe | SD Sharpe | Mean turnover | Directional accuracy | MSE |
-|---|---:|---:|---:|---:|---:|
-| DLinear | -0.4568 | 0.9983 | 28.0627 | 0.4989 | 0.130059 |
-| LSTM | -0.6172 | 1.1431 | 8.5427 | 0.4826 | 0.240953 |
-| Mamba | 0.5511 | 0.6568 | 76.6328 | 0.4774 | 0.262322 |
-| PatchTST | 0.3800 | 0.7999 | 43.1207 | 0.5098 | 0.370780 |
+The [generated metrics](Final_Metrics.md) are preserved verbatim. Their standard
+deviations mix seed and year variation and are not confidence intervals. MSE
+compares trading signals with returns, not calibrated return forecasts. Repeated
+baseline seeds and pooled regime counts do not create independent market days.
+Read the [full review](docs/analysis-2026-11-15.md) and
+[small evidence subset](docs/runs/india-study/) before citing these results.
 
-These are historical backtest statistics, not investment advice. Interpret
-them together with regime sample sizes, confidence intervals, costs, signal
-timing, data quality, and the reproducibility manifest. The full generated
-report is available in [`Final_Metrics.md`](Final_Metrics.md).
-See [`docs/analysis-2026-11-11.md`](docs/analysis-2026-11-11.md) for the
-actual evaluation dates, provenance checks, cost sensitivity, and archive
-limitations. The date-split settings in the config do not describe fold 0.
+The earlier 2013 mixed-market fold and its limitations are retained in the
+[historical review](docs/archive/full-validation/analysis-2026-11-11.md) and
+[historical metrics](docs/archive/full-validation/Final_Metrics.md). Its rankings
+must not be pooled with the Indian sector study.
 
 ## Information documents
 
-The flow is: audited Kaggle files → past-only features → chronological
+The intended flow is: reviewed data → past-only features → chronological
 train/validation/test folds → one bounded signal per asset → one portfolio
 sizing and fee pass → matched-date metrics and regime reports. DLinear is a
 DLinear-inspired signal model, and the PatchTST implementation is a compact
@@ -91,7 +126,7 @@ not part of the published four-model benchmark.
 
 For a synthetic CPU development environment, install pinned packages from
 `requirements.cpu.txt` in a local virtual environment and run only targeted
-tests. The full audited benchmark uses the pinned container. Reproduce any
+tests. The benchmark runner uses the pinned container. Reproduce any
 claim with the data hash, Git commit, resolved configuration, seeds, folds,
 fees, dependency lock, and complete run archive.
 
@@ -100,5 +135,10 @@ fees, dependency lock, and complete run archive.
   validating outputs, and creating the portable ZIP archive.
 - [DOCKER.md](DOCKER.md) — pinned CUDA image, dependency, and GPU preflight
   details.
-- [Final_Metrics.md](Final_Metrics.md) — metrics from the completed benchmark
-  run.
+- [Final_Metrics.md](Final_Metrics.md) — exact generated India run metrics.
+- [docs/analysis-2026-11-15.md](docs/analysis-2026-11-15.md) — verified archive,
+  dates, baselines, uncertainty, tuning, compute and interpretation.
+- [docs/audit-summary.md](docs/audit-summary.md) — methodology changes,
+  remaining market-timing restriction, and verification limits.
+
+> Made part of the Deep Learning Mini Project
