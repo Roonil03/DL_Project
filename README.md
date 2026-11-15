@@ -11,10 +11,10 @@ be checked for each dataset and execution setup.
 
 Many financial deep-learning comparisons report one aggregate forecasting or
 Sharpe score. That can hide failures during high-volatility, bearish, or crisis
-periods. This project addresses the gap by comparing architectures on an
-independent multi-market dataset with regime-specific risk, trading-cost,
-uncertainty, and compute analysis rather than relying on a single aggregate
-ranking.
+periods. This project studies architecture comparisons with regime-specific
+risk, trading-cost, uncertainty, and compute analysis rather than relying on
+a single aggregate ranking. The historical multi-market run and the planned US
+industry-return study have different datasets and limitations.
 
 ## Models and contributors
 

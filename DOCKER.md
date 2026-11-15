@@ -22,7 +22,7 @@ environment manager are not used (`mamba-ssm` is the model library).
 ## Run
 
 ```bash
-./run_all_models.sh
+DATASET_MODE=french_industry FOLDS= ./run_all_models.sh
 ```
 
 When invoked on the host, the script checks the Docker daemon, reuses the

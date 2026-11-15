@@ -94,6 +94,8 @@ $env:JUPYTER_TOKEN = Read-Host 'Jupyter token'
 
 The script validates local files and hashes inputs, then runs the notebook
 runner in the image's `/opt/venv`. `-WhatIf` prints the plan without training.
+It still requires the selected local dataset files, including the French ZIP,
+to exist before it prints the plan.
 The PowerShell wrapper supports GPU mode; the Bash runner also accepts an
 explicit CPU selection.
 Checkpoint files use PyTorch serialization; load only checkpoints from trusted
@@ -118,9 +120,10 @@ run parameters and execute the mounted script inside Compose:
 
 ```powershell
 $env:RUN_ID = "benchmark-$(Get-Date -Format yyyyMMdd-HHmmss)"
+$env:DATASET_MODE = "french_industry"
 $env:MODELS = "dlinear,lstm,mamba,patchtst"
 $env:SEEDS = "42,52,62,72,82"
-$env:FOLDS = "0"
+Remove-Item Env:FOLDS -ErrorAction SilentlyContinue
 $env:DEVICE = "gpu"
 $env:RESUME_MODE = "auto"
 $env:EPOCHS = "100"
@@ -130,9 +133,9 @@ $env:INCLUDE_DATA = "0"
 docker compose build jupyter
 docker compose run --rm `
   -e "RUN_ID=$env:RUN_ID" `
+  -e "DATASET_MODE=$env:DATASET_MODE" `
   -e "MODELS=$env:MODELS" `
   -e "SEEDS=$env:SEEDS" `
-  -e "FOLDS=$env:FOLDS" `
   -e "DEVICE=$env:DEVICE" `
   -e "RESUME_MODE=$env:RESUME_MODE" `
   -e "EPOCHS=$env:EPOCHS" `
