@@ -67,12 +67,16 @@ WORKDIR /home/jovyan/work
 # Install the CUDA wheel and the remaining pinned packages in separate layers.
 # mamba-ssm is installed with --no-build-isolation so its extension build sees
 # this exact CUDA-enabled torch instead of pulling an unrelated CPU torch.
-COPY requirements.docker.txt /tmp/requirements.docker.txt
 RUN /opt/venv/bin/pip3 install --no-cache-dir \
         --index-url https://download.pytorch.org/whl/cu124 \
         --no-deps \
-        torch==2.4.1+cu124 \
-    && /opt/venv/bin/pip3 install --no-cache-dir --no-build-isolation \
+        torch==2.4.1+cu124
+
+# Use PyPI explicitly for the remaining packages, and keep the large Torch
+# wheel in its own cached layer when package downloads need to be retried.
+COPY requirements.docker.txt /tmp/requirements.docker.txt
+RUN /opt/venv/bin/pip3 install --no-cache-dir --no-build-isolation \
+        --index-url https://pypi.org/simple --retries 10 --timeout 120 \
         -r /tmp/requirements.docker.txt \
     && rm -f /tmp/requirements.docker.txt \
     && /opt/venv/bin/python -m ipykernel install \
