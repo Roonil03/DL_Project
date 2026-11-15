@@ -20,14 +20,20 @@ def test_sharpe_loss_matches_gross_backtest_with_sizing_and_cap():
 def test_bounded_candidates_and_validation_only_selection():
     import copy
     from src.training.tune import bounded_model_candidates, select_validation_candidate
-    models = {'dlinear': {'trend_window': 20}, 'lstm': {'hidden_dim': 64},
-              'mamba': {'d_model': 64}, 'patchtst': {'d_model': 64, 'heads': 4},
-              'ahat_fin': {'d_model': 64, 'heads': 4}}
+    models = {'dlinear': {'trend_window': 20}, 'lstm': {'hidden_dim': 64, 'layers': 2, 'dropout': .1},
+              'mamba': {'d_model': 64, 'layers': 2}, 'patchtst': {'d_model': 64, 'heads': 4, 'layers': 2, 'patch_length': 5},
+              'ahat_fin': {'d_model': 64, 'heads': 4, 'layers': 2}}
     before = copy.deepcopy(models)
     for name in models:
         candidates = bounded_model_candidates(name, models, [.001, .0003], 2)
         assert len(candidates) == 2
-        assert candidates[0]['models'][name] != candidates[1]['models'][name]
+        base, variant = (candidate['models'][name] for candidate in candidates)
+        assert base != variant
+        fields = {'dlinear': ('trend_window',), 'lstm': ('hidden_dim', 'layers', 'dropout'),
+                  'mamba': ('d_model', 'layers'), 'patchtst': ('d_model', 'heads', 'layers', 'patch_length'),
+                  'ahat_fin': ('d_model', 'heads', 'layers')}
+        assert all(base[field] != variant[field] for field in fields[name])
+        if 'heads' in variant: assert variant['d_model'] % variant['heads'] == 0
     assert models == before
     trials = [{'negative_validation_sharpe': -.2, 'test_score': 100},
               {'negative_validation_sharpe': -.5, 'test_score': -100}]
@@ -105,3 +111,32 @@ def test_regime_threshold_is_fixed_to_training():
     labels_a = detect_regimes(prices_a, vol_window=10, trend_window=15, train_end=dates[79])
     labels_b = detect_regimes(prices_b, vol_window=10, trend_window=15, train_end=dates[79])
     assert labels_a.iloc[-20:].equals(labels_b.iloc[-20:])
+
+
+def test_baselines_have_distinct_causal_positions_and_returns():
+    from src.portfolio.baselines import (get_zero_signal_baseline,
+        get_long_only_baseline, get_long_only_trend_baseline, get_momentum_baseline)
+    history = np.array([[.01, -.02], [.02, -.01], [-.04, .03],
+                        [-.02, .01], [.03, -.02], [.02, -.01]])
+    lookback = 2
+    selection = slice(lookback, None)
+    vol = np.array([[.05, .2], [.2, .05], [.08, .25], [.25, .08]])
+    targets = np.array([[.01, .04], [-.02, .01], [.03, -.02], [-.01, .05]])
+    signals = [vol / .1, get_zero_signal_baseline(targets),
+               get_long_only_trend_baseline(history, lookback)[selection],
+               get_momentum_baseline(history, lookback)[selection],
+               get_long_only_baseline(targets)]
+    bt = Backtester(target_vol=.1, max_leverage=3., tc_bps=0.)
+    results = [bt.run(signal, vol, targets) for signal in signals]
+    for i, result in enumerate(results):
+        for other in results[i + 1:]:
+            assert not np.allclose(result['positions'], other['positions'])
+            assert not np.allclose(result['gross_returns'], other['gross_returns'])
+    assert np.allclose(results[0]['positions'], 1.)
+    assert np.all(results[2]['positions'].to_numpy() >= 0)
+    assert np.any(results[3]['positions'].to_numpy() < 0)
+    changed_future = history.copy()
+    changed_future[4:] *= -100
+    np.testing.assert_array_equal(
+        get_long_only_trend_baseline(history, lookback)[:5],
+        get_long_only_trend_baseline(changed_future, lookback)[:5])

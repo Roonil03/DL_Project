@@ -45,6 +45,16 @@ def get_momentum_baseline(returns: np.ndarray, lookback: int = 20) -> np.ndarray
     return signals
 
 
+
+def get_long_only_trend_baseline(returns: np.ndarray, lookback: int = 20) -> np.ndarray:
+    """Long when the trailing return is positive; otherwise hold cash.
+
+    As with the long/short momentum baseline, the lookback excludes the
+    current row and the warm-up is flat. The portfolio layer applies the
+    common volatility target to the resulting signal exactly once.
+    """
+    return (get_momentum_baseline(returns, lookback) > 0).astype(float)
+
 def get_volatility_managed_baseline(returns: np.ndarray, target_vol: float = 0.10, lookback: int = 20) -> np.ndarray:
     """
     4. Volatility-Managed Baseline:
