@@ -58,7 +58,9 @@ class GlobalIndianAdapter(BaseDatasetAdapter):
                     pass
 
             df = df.apply(pd.to_numeric, errors='coerce')
-            df = df[~df.index.duplicated(keep='last')].sort_index()
+            if df.index.hasnans or df.index.duplicated().any():
+                raise ValueError('market data contains invalid or duplicate timestamps')
+            df = df.sort_index()
             
             # Filter by start and end date bounds
             df = df.loc[self.start_date:self.end_date]
@@ -73,7 +75,7 @@ class GlobalIndianAdapter(BaseDatasetAdapter):
             if missing:
                 raise ValueError(f"Primary Kaggle dataset is missing close fields: {missing}")
             prices = df[list(close_mapping)].rename(columns=close_mapping)
-            return prices.ffill().dropna()
+            return prices
 
         if not self.allow_yfinance_fallback:
             raise FileNotFoundError(
@@ -118,3 +120,11 @@ class SP500Adapter(BaseDatasetAdapter):
                 return pd.DataFrame({'SP500': df[sp_col]}).dropna()
                 
         raise FileNotFoundError("S&P 500 data source could not be resolved locally.")
+
+
+def validate_global_market_inputs(prices: pd.DataFrame) -> None:
+    """Reject unsupported market calendars until source availability is known."""
+    if prices.empty or prices.isna().any().any():
+        raise ValueError("Selected market data contains missing prices; gap handling requires an audited availability calendar")
+    if prices.shape[1] > 1:
+        raise ValueError("Mixed-market benchmark is disabled: source close timestamps and execution availability are not verified")

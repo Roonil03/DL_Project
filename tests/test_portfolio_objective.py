@@ -79,3 +79,29 @@ def test_notebook_checkpoint_fallback_is_isolated_by_fold(tmp_path):
     other = run_class(tmp_path, 'run', 'lstm', 42, 1)
     assert other.load_checkpoint() is None
     assert first.checkpoints != other.checkpoints
+
+
+def test_market_inputs_reject_missing_and_unverified_mixed_market():
+    import pandas as pd
+    import pytest
+    from src.data.adapters import validate_global_market_inputs
+    validate_global_market_inputs(pd.DataFrame({'asset': [1., 2.]}))
+    with pytest.raises(ValueError, match='missing prices'):
+        validate_global_market_inputs(pd.DataFrame({'asset': [1., np.nan]}))
+    with pytest.raises(ValueError, match='Mixed-market'):
+        validate_global_market_inputs(pd.DataFrame({'a': [1., 2.], 'b': [3., 4.]}))
+
+
+def test_regime_threshold_is_fixed_to_training():
+    import pandas as pd
+    from src.regimes.rules import detect_regimes
+    rng = np.random.default_rng(8)
+    changes = rng.normal(.0003, .01, 180)
+    altered = changes.copy()
+    altered[100:140] *= 15
+    dates = pd.date_range('2020-01-01', periods=180)
+    prices_a = pd.Series(100 * np.cumprod(1 + changes), index=dates)
+    prices_b = pd.Series(100 * np.cumprod(1 + altered), index=dates)
+    labels_a = detect_regimes(prices_a, vol_window=10, trend_window=15, train_end=dates[79])
+    labels_b = detect_regimes(prices_b, vol_window=10, trend_window=15, train_end=dates[79])
+    assert labels_a.iloc[-20:].equals(labels_b.iloc[-20:])
