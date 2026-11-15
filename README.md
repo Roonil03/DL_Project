@@ -37,15 +37,14 @@ markets remain unverified. Its default five-asset selection therefore cannot
 currently complete a new run.
 
 The completed primary `india-study` run uses the [Indian market historical dataset](https://github.com/aswinv90/indian-market-historical-data)
-at pinned commit `1f4aff7c3e53a9f2bfb6a167b0d80f4d0c8f8bf9`
 for NIFTY BANK, IT and PHARMA. Its common daily panel begins in 2011 and
 has 3,675 complete sessions from 31 January 2011 through 31 December 2025,
 including the 2020 crisis. Returns are derived from daily Close prices and exclude
 dividends. The source permits noncommercial academic and personal use. The
 benchmark excludes raw files from archives because redistribution rights for
 the underlying market data are unverified. The run completed 40 model/seed/fold
-units on 15 November 2026, testing calendar years 2020 and 2023. The verified
-local archive is `artifacts/india-study.zip` (86,236,936 bytes). See the
+units on 15 November 2026, testing calendar years 2020 and 2023.  
+See the
 [run review](docs/analysis-2026-11-15.md) for its hash, actual dates and limits.
 
 An optional separate US comparison uses [FRED's Nasdaq US Large/Mid Cap sector
@@ -141,3 +140,5 @@ fees, dependency lock, and complete run archive.
   dates, baselines, uncertainty, tuning, compute and interpretation.
 - [docs/audit-summary.md](docs/audit-summary.md) — methodology changes,
   remaining market-timing restriction, and verification limits.
+
+> Made part of the Deep Learning Mini Project

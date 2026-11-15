@@ -39,7 +39,6 @@ personal use. Raw files are excluded from benchmark archives because rights to
 redistribute the underlying market data are unverified. The completed
 `india-study` run and verified ZIP are reviewed in
 [docs/analysis-2026-11-15.md](docs/analysis-2026-11-15.md).
-The pinned source commit is `1f4aff7c3e53a9f2bfb6a167b0d80f4d0c8f8bf9`.
 The local directory is `data/india_indices/`; it contains
 `NIFTY_BANK.parquet`, `NIFTY_IT.parquet`, `NIFTY_PHARMA.parquet`, and
 `index_list.csv`. The configured test years are 2020 and 2023, each with five
@@ -49,8 +48,7 @@ through that cutoff. Input features and sizing volatility are lagged one
 observed session; exact close-time execution is not established. Adjusted
 Close has not been verified as dividend-adjusted.
 
-The PowerShell and Bash runners download missing pinned files and validate
-their SHA-256 hashes. To prepare them explicitly in the container, use
+The PowerShell and Bash runners can be prepared explicitly in the container, use
 `docker compose run --rm jupyter /opt/venv/bin/python scripts/prepare_india_indices.py`.
 The preparation script validates existing files and refuses hash mismatches.
 
@@ -66,7 +64,6 @@ spans 30 March 2001 through 13 November 2026, with 6,518 complete trading rows
 and 168 all-missing holiday rows shared by all five series; there are no
 partially missing rows. It has 253 complete observations in 2008 and 257 in
 2020. Portfolio returns are derived from percentage changes in index levels.
-Its SHA-256 is `b3be7fb4980c2794d338b06eb150aa4cabd4e4de9978b02e8231a09b92e93e2c`.
 Keep the exact input snapshot and manifest for reproducibility. No US sector
 benchmark results are available.
 The runners download the CSV if it is absent; alternatively, run
@@ -210,9 +207,7 @@ Training is disabled in clean templates. The runner sets `RUN_TRAINING=1` for
 each requested model/seed/fold unit and saves the executed notebook under
 `outputs/<run_id>/notebooks/`.
 
-The archived India run's validation suite recorded 58 tests passed and 4 skipped.
-After [runtime PR #8](https://github.com/Roonil03/DL_Project/pull/8), testing files
-are excluded from clean source checkouts. An optional local suite runs when
+An optional local suite runs when
 present; otherwise validation records its absence explicitly. Required data,
 unit-schema, checkpoint and archive integrity gates still run. Do not interpret
 an absent optional suite as tests passing.

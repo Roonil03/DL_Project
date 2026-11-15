@@ -1,7 +1,5 @@
 # Final Metrics — india-study
 
-Generated from observed notebook unit outputs. No metrics are imputed.
-
 ## Aggregate economic and predictive metrics
 
 | Model | Cost bps | Seeds | Folds | Mean Sharpe | SD Sharpe | Mean turnover | Directional accuracy | MSE |
