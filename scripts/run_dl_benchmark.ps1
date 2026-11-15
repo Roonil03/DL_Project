@@ -123,9 +123,12 @@ try {
     # Check the daemon before deciding whether an image needs to be built.
     & docker info *> $null
     if ($LASTEXITCODE -ne 0) { throw 'Docker daemon unavailable. Start Docker Desktop and retry.' }
-    # Reuse an existing CUDA image; build only when it is absent.
-    & docker image inspect fin-dl-benchmark:cuda12.4-india1 *> $null
-    if ($LASTEXITCODE -ne 0) {
+    # Listing an absent image succeeds with no output. `image inspect` emits a
+    # native stderr error, which PowerShell can promote to a terminating error
+    # before the missing-image build branch runs.
+    $imageIds = @(& docker image ls --quiet 'fin-dl-benchmark:cuda12.4-india1')
+    if ($LASTEXITCODE -ne 0) { throw 'Could not query local Docker images.' }
+    if (-not ($imageIds | Where-Object { $_ })) {
         Write-Host 'CUDA image is not present locally; building it once.'
         & docker compose build --pull jupyter
         if ($LASTEXITCODE -ne 0) { throw 'Docker build failed' }
