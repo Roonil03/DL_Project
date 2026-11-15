@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 from pathlib import Path
 import tempfile
 import zipfile
@@ -43,21 +44,56 @@ def check_identity(run, value):
         path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n', encoding='utf-8')
 
 
+# Only the documented dataset inputs may be distributed when explicitly requested.
+DATASET_FILES = ('daily_market_data.csv', 'monthly_macro_data.csv', 'codes_and_sources.md',
+                 '10_Industry_Portfolios_daily_CSV.zip')
+
+
+def safe_file(root, relative):
+    """Reject absolute paths, traversal and symlinks in any path component."""
+    if relative.is_absolute() or '..' in relative.parts:
+        return False
+    path = root
+    for part in relative.parts:
+        path = path / part
+        if path.is_symlink():
+            return False
+    return path.is_file()
+
+
+def snapshot(root, destination):
+    """Copy the explicit source allowlist; never sweep untracked files into a bundle."""
+    names = (root / 'scripts' / 'source_snapshot.txt').read_text(encoding='utf-8-sig').splitlines()
+    paths = [Path(name) for name in names if name.strip()]
+    for rel in paths:
+        if not safe_file(root, rel):
+            raise ValueError(f'Missing or unsafe snapshot file: {rel}')
+    if destination.exists():
+        if destination.is_symlink():
+            raise ValueError('Snapshot destination must not be a symlink')
+        shutil.rmtree(destination)
+    for rel in paths:
+        target = destination / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(root / rel, target)
+
+
 def bundle(run, destination, include_checkpoints=False, data=None):
     files = []
     for path in sorted(run.rglob('*')):
         rel = path.relative_to(run)
-        if not path.is_file() or rel.as_posix() == 'bundle_manifest.json':
+        if not safe_file(run, rel) or rel.as_posix() == 'bundle_manifest.json':
             continue
         if not include_checkpoints and rel.parts[0] == 'checkpoints':
             continue
-        if '.env' in rel.parts or path.name.startswith('.env.'):
+        if any(part == '.env' or part.startswith('.env.') for part in rel.parts):
             continue
         files.append((path, (Path(run.name) / rel).as_posix()))
     if data:
-        for path in sorted(data.rglob('*')):
-            if path.is_file():
-                files.append((path, (Path('dataset') / path.relative_to(data)).as_posix()))
+        for name in DATASET_FILES:
+            rel = Path(name)
+            if safe_file(data, rel):
+                files.append((data / rel, (Path('dataset') / rel).as_posix()))
     entries = [{'path': name, 'bytes': path.stat().st_size, 'sha256': digest(path)} for path, name in files]
     manifest = json.dumps({'schema_version': '1.0', 'files': entries}, indent=2, sort_keys=True) + '\n'
     (run / 'bundle_manifest.json').write_text(manifest, encoding='utf-8')
@@ -91,12 +127,16 @@ def main():
     ident = sub.add_parser('identity')
     for arg in ('root', 'data', 'run', 'options'):
         ident.add_argument(arg)
+    snap = sub.add_parser('snapshot')
+    snap.add_argument('root'); snap.add_argument('destination')
     pack = sub.add_parser('bundle')
     pack.add_argument('run'); pack.add_argument('destination')
     pack.add_argument('--checkpoints', action='store_true'); pack.add_argument('--data')
     args = parser.parse_args()
     if args.command == 'identity':
         check_identity(Path(args.run), identity(Path(args.root), Path(args.data), json.loads(args.options)))
+    elif args.command == 'snapshot':
+        snapshot(Path(args.root), Path(args.destination))
     else:
         bundle(Path(args.run), Path(args.destination), args.checkpoints, Path(args.data) if args.data else None)
 

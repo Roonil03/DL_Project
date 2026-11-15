@@ -324,9 +324,7 @@ state.write_text(json.dumps({"schema_version":"1.0","status":"complete"},indent=
 PY
 
 cp "$RUN_DIR/Final_Metrics.md" Final_Metrics.md
-mkdir -p "$RUN_DIR/code"
-cp -R src configs notebooks tests scripts "$RUN_DIR/code/"
-cp Dockerfile docker-compose.yml requirements.docker.txt requirements.mamba-compat.txt run_all_models.sh README.md RunningNotebooks.md DOCKER.md "$RUN_DIR/code/"
+python scripts/runner_support.py snapshot "$ROOT" "$RUN_DIR/code"
 # Stop the sampler and render its history before taking the archive snapshot.
 kill "$MONITOR_PID" 2>/dev/null || true
 wait "$MONITOR_PID" 2>/dev/null || true
