@@ -94,3 +94,25 @@ def test_2008_fold_does_not_require_2020_data():
     assert set(data['target_dates'][data['masks']['test']].year) == {2008}
     with pytest.raises(ValueError, match='Insufficient coverage'):
         prepare_french_benchmark(source, ['NoDur'], 1, lookback=20)
+
+
+def test_sentinels_outside_selected_fold_do_not_block_preparation(tmp_path):
+    dates = pd.bdate_range('1990-01-01', '2021-01-08')
+    def write_source(missing_dates):
+        rows = []
+        for date in dates:
+            first = '-99.99' if date in missing_dates else '0.1'
+            rows.append(date.strftime('%Y%m%d') + ',' + ','.join([first] + ['0.1'] * 9))
+        make_zip(tmp_path / 'source.zip', rows)
+        return FrenchIndustryAdapter(tmp_path / 'source.zip').load()
+
+    source = write_source({dates[0]})
+    assert pd.isna(source.iloc[0, 0])
+    for fold, year in ((0, 2008), (1, 2020)):
+        result = prepare_french_benchmark(source, ['NoDur'], fold, lookback=20)
+        assert set(result['target_dates'][result['masks']['test']].year) == {year}
+    source = write_source({dates[0], pd.Timestamp('2003-06-02')})
+    with pytest.raises(ValueError, match='do not forward-fill'):
+        prepare_french_benchmark(source, ['NoDur'], 0, lookback=20)
+    result = prepare_french_benchmark(source, ['NoDur'], 1, lookback=20)
+    assert set(result['target_dates'][result['masks']['test']].year) == {2020}

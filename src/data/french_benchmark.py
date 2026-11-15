@@ -15,15 +15,26 @@ def prepare_french_benchmark(raw_returns, assets, fold, lookback):
     missing = sorted(set(assets) - set(raw_returns.columns))
     if missing or not assets or len(set(assets)) != len(assets):
         raise ValueError(f"Invalid French industry asset selection: {missing}")
-    returns = raw_returns.loc[:, assets]
+    test_years = (2008, 2020)
+    if fold < 0 or fold >= len(test_years):
+        raise ValueError(f"FOLD={fold} outside available 0..{len(test_years)-1}")
+    if not isinstance(raw_returns.index, pd.DatetimeIndex) or not raw_returns.index.is_unique or not raw_returns.index.is_monotonic_increasing:
+        raise ValueError("Returns require a unique, chronological DatetimeIndex")
+    # Each fold has five train years, one validation year and one test year.
+    # Include a fixed observation warmup for 60-day features, model lookback,
+    # and the regime classifier's 120-day trend, without using unrelated history.
+    test_start = pd.Timestamp(year=test_years[fold], month=1, day=1)
+    train_start = test_start - pd.DateOffset(years=6)
+    test_end = test_start + pd.DateOffset(years=1)
+    start_pos = raw_returns.index.searchsorted(train_start)
+    end_pos = raw_returns.index.searchsorted(test_end)
+    warmup = 60 + lookback + 121
+    returns = raw_returns.iloc[max(0, start_pos - warmup):end_pos].loc[:, assets]
     features, returns, vol, _ = build_features_from_returns(returns)
     # Each decision at the US close uses returns through that close; the target
     # is the next observed trading day's return.
     _, _, decisions = create_rolling_windows(features.to_numpy(), returns.to_numpy(), lookback, features.index)
     target_dates = features.index[lookback:]
-    test_years = (2008, 2020)
-    if fold < 0 or fold >= len(test_years):
-        raise ValueError(f"FOLD={fold} outside available 0..{len(test_years)-1}")
     indices = calendar_crisis_folds(decisions, target_dates, test_years=(test_years[fold],))[0]
     masks = {}
     for name, idx in zip(('train', 'val', 'test'), indices):
@@ -36,7 +47,7 @@ def prepare_french_benchmark(raw_returns, assets, fold, lookback):
     assert decisions_scaled.equals(decisions)
     # These are cumulative research-return indices solely for regime labels.
     # Their levels do not represent actual traded prices.
-    wealth = (1 + raw_returns.loc[:, assets]).cumprod()
+    wealth = (1 + raw_returns.iloc[max(0, start_pos - warmup):end_pos].loc[:, assets]).cumprod()
     first_train = wealth.index.get_indexer([train_decisions.min()])[0]
     regime_wealth = wealth.iloc[max(0, first_train - 121):]
     regimes = detect_regimes(regime_wealth, train_end=train_decisions.max()).reindex(decisions)
